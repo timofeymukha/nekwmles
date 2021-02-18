@@ -14,19 +14,8 @@
       include 'SIZE'
       include 'INPUT'
       include 'FRAMELP'
+      include 'WMLES'
 
-      integer wmles_id
-      character*(*) wmles_name
-      parameter(wmles_name='WMLES')
-
-!     initialisation flag
-      logical wmles_ifinit
-
-      ! runtime parameter part
-      ! section id
-      integer wmles_sec_id  
-      integer wmles_logkappa_id
-      integer wmles_logb_id
 
       ! local variables
       integer lpmid, il
@@ -92,6 +81,10 @@
       call rprm_rp_reg(wmles_logb_id, wmles_sec_id, 'LOGB',
      $     'the intercept of the log law', rpar_real, 0, 0.41, .false.,
      $     ' ')
+
+      call rprm_rp_reg(wmles_guess_id, wmles_sec_id, 'GUESS',
+     $     'An initial guess for tau_w', rpar_real, 0, 5e-2, .false.,
+     $     ' ')
  
 !       call rprm_rp_reg(wmles_IOstep_id,wmles_sec_id,'IOSTEP',
 !      $     'Frequency of filed saving',rpar_int,100,0.0,.false.,' ')
@@ -104,4 +97,63 @@
 !       call mntr_tmr_add(wmles_tmr_tot_id,1,ltim)
  
        return
-       end subroutine  
+       end subroutine
+!=======================================================================
+!> @brief Initilise the WMLES module
+!! @ingroup wmles
+!! @note This routine should be called in frame_usr_init
+      subroutine wmles_init()
+      implicit none
+      
+      include 'SIZE'
+      include 'FRAMELP'
+      include 'TSTEP'
+      include 'WMLES'
+      
+      ! local dummy variables
+      integer itmp, il
+      real rtmp, ltim
+      logical ltmp
+      character*20 ctmp
+      
+      ! functions
+      real dnekclock
+!-----------------------------------------------------------------------
+      ! check if the module was already initialised
+      if (wmles_ifinit) then
+        call mntr_warn(wmles_id,
+     $      'module ['//trim(wmles_name)//'] already initiaised.')
+        return
+      endif
+      
+      ! timing
+      ltim = dnekclock()
+      
+      ! get the guess for tau and assign
+      call rprm_rp_get(itmp,rtmp,ltmp,ctmp,wmles_guess_id,rpar_real)
+      tau = rtmp
+      
+    
+      ! everything is initialised
+      wmles_ifinit=.true.
+    
+      ! timing
+   !   ltim = dnekclock() - ltim
+   !   call mntr_tmr_add(wmles_tmr_ini_id,1,ltim)
+      
+      return
+      end subroutine
+!=======================================================================
+!> @brief Check if module was initialised
+!! @ingroup wmles
+!! @return wmles_is_initialised
+      logical function wmles_is_initialised()
+      implicit none
+
+      include 'SIZE'
+      include 'WMLES'
+!-----------------------------------------------------------------------
+      wmles_is_initialised = wmles_ifinit
+
+      return
+      end function

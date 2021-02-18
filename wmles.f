@@ -76,10 +76,10 @@
  
       ! register parameters
       call rprm_rp_reg(wmles_logkappa_id, wmles_sec_id, 'LOGKAPPA',
-     $     'von Karman coefficient', rpar_real, 0, 0.41, .false.,' ')
+     $     'von Karman coefficient', rpar_real, 0, 0.387, .false.,' ')
 
       call rprm_rp_reg(wmles_logb_id, wmles_sec_id, 'LOGB',
-     $     'the intercept of the log law', rpar_real, 0, 0.41, .false.,
+     $     'the intercept of the log law', rpar_real, 0, 4.21, .false.,
      $     ' ')
 
       call rprm_rp_reg(wmles_guess_id, wmles_sec_id, 'GUESS',

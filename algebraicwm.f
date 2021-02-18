@@ -7,6 +7,7 @@
       include 'INPUT'
       include 'SOLN'
       include 'GEOM'
+      include 'FRAMELP'
 
       ! Some counters to traverse the velocity mesh
       integer ielem, iface, igllx, iglly, igllz
@@ -44,10 +45,11 @@
 
       common /wmles/ tau
 
+      ! Grab various simulation parameters
       nu = param(2)
 
       ! Fill with a default value for debugging purposes
-      tau = -1
+      !tau = -1
 
       nwallnodes = 0
       totalutau = 0
@@ -180,18 +182,18 @@ c     $                       zm1(ifacex, yhind, ifacez, ielem)
                   
                   magvh = sqrt(vxh**2 + vzh**2)
 
-                  guess = 5200*nu 
+                  ! take the stress at the previous step as a guess
+                  ! inital value is the GUESS parameter
+                  guess = sqrt(tau(ifacex, ifacey, ifacez, ielem))
                   utau = newton(magvh, h, nu, guess,
      $                          1e-3, 50, .false.)
                   totalutau = totalutau + utau
                   nwallnodes = nwallnodes + 1
                   tau(ifacex, ifacey, ifacez, ielem) = utau**2
 
-
-
 c                 write(*,*) xgll, xh, ygll, yh, zgll, zh, h
-c                  write(*,*) vxh, h, tauw
-c                  write(*,*) ielem, iface, vxh, vyh, vzh, h
+c                 write(*,*) vxh, h, tauw
+c                 write(*,*) ielem, iface, vxh, vyh, vzh, h
 
                 end do
               end do

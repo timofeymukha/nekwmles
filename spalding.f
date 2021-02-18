@@ -1,37 +1,30 @@
-      real function newton(u, y, nu, utau, tol, maxiter, debug)
+!> @brief Newton-Raphson solver for non-linear algeraic equations
+!! @param[in]   u              velocity magnitude
+!! @param[in]   y              wall-normal distance
+!! @param[in]   utau           friction velocity
+!! @param[in]   tol            error tolerance
+!! @param[in]   maxitter       max number of iteratios
+      real function newton(f, d, u, y, utau, tol, maxiter)
 
       implicit none
 
-      ! Stuff to pass to the wall model
-      real u, y , nu
-      
+      ! input
+      real u, y, utau, tol
+      integer maxiter 
 
-      real spalding_value
-      real spalding_derivative
-
-      ! The friction velocty to be found
-      real utau
-      
-      ! Misc parameters
-      real tol
-      integer maxiter
-      logical debug
+      real f
+      real d
 
       real deltax, fx, fxprime
       integer k
-
-      if (debug) then
-        print 11, utau
-11      format('Initial guess: utau = ', e22.15)
-      endif
 
       newton = utau
 
       do k=1,maxiter
 
         ! evaluate function and its derivative:
-        fx = spalding_value(u, y, nu, newton)
-        fxprime = spalding_derivative(u, y, nu, newton)
+        fx = f(u, y, newton)
+        fxprime = d(u, y, newton)
 
         if (abs(fx) < tol) then
           exit  ! jump out of do loop
@@ -43,33 +36,23 @@
         ! update x:
         newton = newton - deltax
 
-        if (debug) then
-          print 12, k, newton 
- 12       format('After', i3, ' iterations, x = ', e22.15)
-        endif
-
       enddo
 
       end
 
-
-      real function spalding_value(u, y, nu, utau)
-      ! Return the value of the implicit function defined by Spalding's
-      ! law. To be used with Newton's law.
-
+!> @brief Spaldings law in implicit form
+!! @param[in]   u                 velocity magnitude
+!! @param[in]   y                 wall-normal distance
+!! @param[in]   utau              friction velocity
+      real function spalding_value(u, y, utau)
       implicit none
+      include 'SIZE'
+      include 'FRAMELP'
+      include 'WMLES'
+      include 'INPUT'
 
-      ! Sampled velocity value
-      real u
-
-      ! Wall-normal distance to the sampling point
-      real y
-
-      ! Kinematic viscosity
-      real nu
-
-      ! The friction velocity
-      real utau 
+      ! input
+      real u, y, utau
 
       ! model constants
       real kappa, B
@@ -77,35 +60,40 @@
       ! scaled quantities
       real uplus, yplus 
 
-      kappa  = 0.41
-      B = 5.5
+      ! dummy variables for retrieving parameters
+      integer itmp
+      logical ltmp
+      character*20 ctmp
+!-----------------------------------------------------------------------
+
+      ! assign kappa and B
+      call rprm_rp_get(itmp,kappa,ltmp,ctmp,wmles_logkappa_id,rpar_real)
+      call rprm_rp_get(itmp,B,ltmp,ctmp,wmles_logb_id,rpar_real)
 
       uplus = u/utau
-      yplus = y*utau/nu
+      yplus = y*utau/param(2)
+
       spalding_value = 
      $  (uplus + exp(-kappa*B)*(exp(kappa*uplus) - 1.0 -
      $   kappa*uplus - 0.5*(kappa*uPlus)**2 -
-     $   1./6*(kappa*uPlus)**3) -  yPlus)
+     $   1./6*(kappa*uPlus)**3) -  yplus)
 
       end
 
-      real function spalding_derivative(u, y, nu, utau)
-      !Return the value of the derivative of the implicit function
-      ! defined by Spalding's law. To be used with Newton's method.
-
+!> @brief Derivative of Spaldings law in implicit form
+!! @param[in]   u                 velocity magnitude
+!! @param[in]   y                 wall-normal distance
+!! @param[in]   utau              friction velocity
+      real function spalding_derivative(u, y, utau)
       implicit none
 
-      ! Sampled velocity value
-      real u
+      include 'SIZE'
+      include 'INPUT'
+      include 'FRAMELP'
+      include 'WMLES'
 
-      ! Wall-normal distance to the sampling point
-      real y
-
-      ! Kinematic viscosity
-      real nu
-
-      ! The friction velocity
-      real utau 
+      ! input
+      real u, y, utau
 
       ! model constants
       real kappa, B
@@ -113,13 +101,19 @@
       ! scaled quantities
       real uplus, yplus 
 
-      kappa  = 0.41
-      B = 5.5
+      ! dummy variables for retrieving parameters
+      integer itmp
+      logical ltmp
+      character*20 ctmp
+!-----------------------------------------------------------------------
+
+      ! Assign kappa and B
+      call rprm_rp_get(itmp,kappa,ltmp,ctmp,wmles_logkappa_id,rpar_real)
+      call rprm_rp_get(itmp,B,ltmp,ctmp,wmles_logb_id,rpar_real)
 
       uplus = u/utau
 
       spalding_derivative = 
-     $  (-y/nu - u/utau**2 - kappa*uplus/utau*exp(-kappa*B) *
+     $  (-y/param(2) - u/utau**2 - kappa*uplus/utau*exp(-kappa*B) *
      $  (exp(kappa*uplus) - 1 - kappa*uplus - 0.5*(kappa*uPlus)**2))
-
       end

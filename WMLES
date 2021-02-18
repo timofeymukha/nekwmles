@@ -1,0 +1,25 @@
+
+      integer wmles_id
+      character*(*) wmles_name
+      parameter(wmles_name='WMLES')
+
+!     initialisation flag
+      logical wmles_ifinit
+
+      ! runtime parameter part
+      ! section id
+      integer wmles_sec_id  
+      integer wmles_logkappa_id
+      integer wmles_logb_id
+      integer wmles_guess_id
+      
+      
+      common /wmlesi/ wmles_sec_id, wmles_logkappa_id, wmles_logb_id,
+     $                wmles_guess_id
+
+      common /wmlesl/ wmles_ifinit  
+
+! The array holding the wall shear stress magnitude
+      real tau(lx1, ly1, lz1, lelv)
+      
+      common /wmles/ tau

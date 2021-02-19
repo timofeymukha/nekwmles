@@ -1,0 +1,44 @@
+      real function flinear(u, y, utau)
+        implicit none
+        real u, y, utau
+        flinear = utau
+        return
+      end
+
+      real function dlinear(u, y, utau)
+        implicit none
+        real u, y, utau
+        dlinear = 1
+        return
+      end
+
+      real function fquadratic(u, y, utau)
+        implicit none
+        real u, y, utau
+        fquadratic = utau**2 - 1
+        return
+      end
+
+      real function dquadratic(u, y, utau)
+        implicit none
+        real u, y, utau
+        dquadratic = 2*utau 
+        return
+      end
+
+!     Test the newton method to compute roots for some simple functions
+      @test
+      subroutine test_newton()
+         use funit
+         implicit none
+         real newton
+         external flinear, dlinear, fquadratic, dquadratic
+         real root
+         
+        root = newton(flinear, dlinear, 1., 1., 3., 1e-3, 100)
+        @assertEqual(0, root, tolerance=1e-7)
+
+        root = newton(fquadratic, dquadratic, 1., 1., 3., 1e-3, 100)
+        @assertEqual(1, root, tolerance=1e-3)
+
+      end subroutine

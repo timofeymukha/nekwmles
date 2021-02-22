@@ -1,4 +1,4 @@
-
+!     module id and name
       integer wmles_id
       character*(*) wmles_name
       parameter(wmles_name='WMLES')
@@ -6,20 +6,26 @@
 !     initialisation flag
       logical wmles_ifinit
 
-      ! runtime parameter part
-      ! section id
+!     runtime parameter part
+!     section id
       integer wmles_sec_id  
+!     kappa in the log law
       integer wmles_logkappa_id
+!     B in the log law
       integer wmles_logb_id
+!     inital guess for the wall-shear stress
       integer wmles_guess_id
-      
+!     wall-normal index of the sampling point
+      integer wmles_samplingidx_id
       
       common /wmlesi/ wmles_sec_id, wmles_logkappa_id, wmles_logb_id,
-     $                wmles_guess_id
+     $                wmles_guess_id, wmles_samplingidx_id
 
       common /wmlesl/ wmles_ifinit  
 
 ! The array holding the wall shear stress magnitude
       real tau(lx1, ly1, lz1, lelv)
       
-      common /wmles/ tau
+      integer samplingidx
+
+      common /wmles/ tau, samplingidx

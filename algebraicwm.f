@@ -32,17 +32,18 @@
       real normalx, normaly, normalz
 
       ! The coordinates and velocity at the sampling point
-      real xh, yh, zh, vxh, vyh, vzh, magvh
+      real xh, yh, zh, vxh, vyh, vzh, vhndot, magvh
 
       ! The distance to the sampling point
       real h
 
       real nu, utau, totalutau, newton
 
+      ! A guess for utau sent to the iterative solver
       real guess
       
-      ! The array holding the wall shear stress magnitude
-      real tau(lx1, ly1, lz1, lelv)
+      ! Laws of the wall
+      external spalding_value, spalding_derivative
 
       common /wmles/ tau
 
@@ -75,6 +76,7 @@ c                  write(*,*) ielem, iface, ifacez, ifacey, ifacex
                   ygll = ym1(ifacex, ifacey, ifacez, ielem)
                   zgll = zm1(ifacex, ifacey, ifacez, ielem)
 
+                  ! inward face normal
                   normalx = unx(ifacex, ifacey, iface, ielem)
                   normaly = -uny(ifacex, ifacey, iface, ielem)
                   normalz = unz(ifacex, ifacey, iface, ielem)
@@ -104,58 +106,58 @@ c                  write(*,*) ielem, iface, xgll, ygll, zgll, ynormal
                   ! location based on the plane the face is in
                   if (iface .eq. 1) then
                     ! Face corresponds to x-z plane at y = -1 
-                    xh = xm1(ifacex, ly1-1, ifacez, ielem)
-                    yh = ym1(ifacex, ly1-1, ifacez, ielem)
-                    zh = zm1(ifacex, ly1-1, ifacez, ielem)
+                    xh = xm1(ifacex, samplingidx + 1, ifacez, ielem)
+                    yh = ym1(ifacex, samplingidx + 1, ifacez, ielem)
+                    zh = zm1(ifacex, samplingidx + 1, ifacez, ielem)
                     
-                    vxh = vx(ifacex, ly1-1, ifacez, ielem)
-                    vyh = vy(ifacex, ly1-1, ifacez, ielem)
-                    vzh = vz(ifacex, ly1-1, ifacez, ielem)
+                    vxh = vx(ifacex, samplingidx + 1, ifacez, ielem)
+                    vyh = vy(ifacex, samplingidx + 1, ifacez, ielem)
+                    vzh = vz(ifacex, samplingidx + 1, ifacez, ielem)
                   else if (iface .eq. 2) then
                     ! Face corresponds to y-z plane at x = 1
-                    xh = xm1(2, ifacey, ifacez, ielem)
-                    yh = ym1(2, ifacey, ifacez, ielem)
-                    zh = zm1(2, ifacey, ifacez, ielem)
+                    xh = xm1(lx1 - samplingidx, ifacey, ifacez, ielem)
+                    yh = ym1(lx1 - samplingidx, ifacey, ifacez, ielem)
+                    zh = zm1(lx1 - samplingidx, ifacey, ifacez, ielem)
 
-                    vxh = vx(2, ifacey, ifacez, ielem)
-                    vyh = vy(2, ifacey, ifacez, ielem)
-                    vzh = vz(2, ifacey, ifacez, ielem)
+                    vxh = vx(lx1 - samplingidx, ifacey, ifacez, ielem)
+                    vyh = vy(lx1 - samplingidx, ifacey, ifacez, ielem)
+                    vzh = vz(lx1 - samplingidx, ifacey, ifacez, ielem)
                   else if (iface .eq. 3) then
                     ! Face corresponds to x-z plane at y = 1
-                    xh = xm1(ifacex, 2, ifacez, ielem)
-                    yh = ym1(ifacex, 2, ifacez, ielem)
-                    zh = zm1(ifacex, 2, ifacez, ielem)
+                    xh = xm1(ifacex, ly1 - samplingidx, ifacez, ielem)
+                    yh = ym1(ifacex, ly1 - samplingidx, ifacez, ielem)
+                    zh = zm1(ifacex, ly1 - samplingidx, ifacez, ielem)
 
-                    vxh = vx(ifacex, 2, ifacez, ielem)
-                    vyh = vy(ifacex, 2, ifacez, ielem)
-                    vzh = vz(ifacex, 2, ifacez, ielem)
+                    vxh = vx(ifacex, ly1 - samplingidx, ifacez, ielem)
+                    vyh = vy(ifacex, ly1 - samplingidx, ifacez, ielem)
+                    vzh = vz(ifacex, ly1 - samplingidx, ifacez, ielem)
                   else if (iface .eq. 4) then
                     ! Face corresponds to y-z plane at x = -1
-                    xh = xm1(lx1-1, ifacey, ifacez, ielem)
-                    yh = ym1(lx1-1, ifacey, ifacez, ielem)
-                    zh = zm1(lx1-1, ifacey, ifacez, ielem)
+                    xh = xm1(samplingidx + 1, ifacey, ifacez, ielem)
+                    yh = ym1(samplingidx + 1, ifacey, ifacez, ielem)
+                    zh = zm1(samplingidx + 1, ifacey, ifacez, ielem)
 
-                    vxh = vx(lx1-1, ifacey, ifacez, ielem)
-                    vyh = vy(lx1-1, ifacey, ifacez, ielem)
-                    vzh = vz(lx1-1, ifacey, ifacez, ielem)
+                    vxh = vx(samplingidx + 1, ifacey, ifacez, ielem)
+                    vyh = vy(samplingidx + 1, ifacey, ifacez, ielem)
+                    vzh = vz(samplingidx + 1, ifacey, ifacez, ielem)
                   else if (iface .eq. 5) then
                     ! Face corresponds to x-y plane at z = -1
-                    xh = xm1(ifacex, ifacey, lz1-1, ielem)
-                    yh = ym1(ifacex, ifacey, lz1-1, ielem)
-                    zh = zm1(ifacex, ifacey, lz1-1, ielem)
+                    xh = xm1(ifacex, ifacey, samplingidx + 1, ielem)
+                    yh = ym1(ifacex, ifacey, samplingidx + 1, ielem)
+                    zh = zm1(ifacex, ifacey, samplingidx + 1, ielem)
 
-                    vxh = vx(ifacex, ifacey, lz1-1, ielem)
-                    vyh = vy(ifacex, ifacey, lz1-1, ielem)
-                    vzh = vz(ifacex, ifacey, lz1-1, ielem)
+                    vxh = vx(ifacex, ifacey, samplingidx + 1, ielem)
+                    vyh = vy(ifacex, ifacey, samplingidx + 1, ielem)
+                    vzh = vz(ifacex, ifacey, samplingidx + 1, ielem)
                   else if (iface .eq. 6) then
                     ! Face corresponds to x-y plane at z = 1
-                    xh = xm1(ifacex, ifacey, 2, ielem)
-                    yh = ym1(ifacex, ifacey, 2, ielem)
-                    zh = zm1(ifacex, ifacey, 2, ielem)
+                    xh = xm1(ifacex, ifacey, lz1 - samplingidx, ielem)
+                    yh = ym1(ifacex, ifacey, lz1 - samplingidx, ielem)
+                    zh = zm1(ifacex, ifacey, lz1 - samplingidx, ielem)
 
-                    vxh = vx(ifacex, ifacey, 2, ielem)
-                    vyh = vy(ifacex, ifacey, 2, ielem)
-                    vzh = vz(ifacex, ifacey, 2, ielem)
+                    vxh = vx(ifacex, ifacey, lz1 - samplingidx, ielem)
+                    vyh = vy(ifacex, ifacey, lz1 - samplingidx, ielem)
+                    vzh = vz(ifacex, ifacey, lz1 - samplingidx, ielem)
                   end if
 
                   
@@ -181,13 +183,25 @@ c     $                       zm1(ifacex, yhind, ifacez, ielem)
                   ! project onto the local face normal
                   h = abs(xh*normalx + yh*normaly + zh*normalz)
                   
-                  magvh = sqrt(vxh**2 + vzh**2)
+                  ! project sampled velocity on the face plane
+                  vhndot = (vxh*normalx + vyh*normaly + vzh*normalz)
+                  vxh = vxh - normalx*vhndot
+                  vyh = vyh - normaly*vhndot
+                  vzh = vzh - normalz*vhndot
+                  
+                  totalvxh = totalvxh + vxh
+                  totalvyh = totalvyh + vyh
+                  totalvzh = totalvzh + vzh
+                  
 
+                  magvh = sqrt(vxh**2 + vyh**2 + vzh**2)
+                 
                   ! take the stress at the previous step as a guess
-                  ! inital value is the GUESS parameter
+                  ! inital value at simulation start is the GUESS param
                   guess = sqrt(tau(ifacex, ifacey, ifacez, ielem))
-                  utau = newton(magvh, h, nu, guess,
-     $                          1e-3, 50, .false.)
+                  utau = newton(spalding_value, spalding_derivative,
+     $                          magvh, h, guess,
+     $                          1e-4, 50)
                   totalutau = totalutau + utau
                   nwallnodes = nwallnodes + 1
                   tau(ifacex, ifacey, ifacez, ielem) = utau**2

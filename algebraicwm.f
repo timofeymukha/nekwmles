@@ -82,6 +82,10 @@ c                  write(*,*) ielem, iface, ifacez, ifacey, ifacex
                   normaly = -uny(ifacex, ifacey, iface, ielem)
                   normalz = unz(ifacex, ifacey, iface, ielem)
                   
+                  call sample_index_based(xh, yh, zh, 
+     $                                    vxh, vyh, vzh,
+     $                                    ifacex, ifacey, ifacez,
+     $                                    iface, ielem, samplingidx)
 c                  write(*,*) ielem, unx(ifacex, ifacey, iface, ielem),
 c     $                       uny(ifacex, ifacey, iface, ielem),
 c     $                       unz(ifacex, ifacey, iface, ielem),
@@ -103,63 +107,6 @@ c                  write(*,*) ielem, iface, xgll, ygll, zgll, ynormal
                   !endif
                   
 
-                  ! We figure out the index the sampling point
-                  ! location based on the plane the face is in
-                  if (iface .eq. 1) then
-                    ! Face corresponds to x-z plane at y = -1 
-                    xh = xm1(ifacex, samplingidx + 1, ifacez, ielem)
-                    yh = ym1(ifacex, samplingidx + 1, ifacez, ielem)
-                    zh = zm1(ifacex, samplingidx + 1, ifacez, ielem)
-                    
-                    vxh = vx(ifacex, samplingidx + 1, ifacez, ielem)
-                    vyh = vy(ifacex, samplingidx + 1, ifacez, ielem)
-                    vzh = vz(ifacex, samplingidx + 1, ifacez, ielem)
-                  else if (iface .eq. 2) then
-                    ! Face corresponds to y-z plane at x = 1
-                    xh = xm1(lx1 - samplingidx, ifacey, ifacez, ielem)
-                    yh = ym1(lx1 - samplingidx, ifacey, ifacez, ielem)
-                    zh = zm1(lx1 - samplingidx, ifacey, ifacez, ielem)
-
-                    vxh = vx(lx1 - samplingidx, ifacey, ifacez, ielem)
-                    vyh = vy(lx1 - samplingidx, ifacey, ifacez, ielem)
-                    vzh = vz(lx1 - samplingidx, ifacey, ifacez, ielem)
-                  else if (iface .eq. 3) then
-                    ! Face corresponds to x-z plane at y = 1
-                    xh = xm1(ifacex, ly1 - samplingidx, ifacez, ielem)
-                    yh = ym1(ifacex, ly1 - samplingidx, ifacez, ielem)
-                    zh = zm1(ifacex, ly1 - samplingidx, ifacez, ielem)
-
-                    vxh = vx(ifacex, ly1 - samplingidx, ifacez, ielem)
-                    vyh = vy(ifacex, ly1 - samplingidx, ifacez, ielem)
-                    vzh = vz(ifacex, ly1 - samplingidx, ifacez, ielem)
-                  else if (iface .eq. 4) then
-                    ! Face corresponds to y-z plane at x = -1
-                    xh = xm1(samplingidx + 1, ifacey, ifacez, ielem)
-                    yh = ym1(samplingidx + 1, ifacey, ifacez, ielem)
-                    zh = zm1(samplingidx + 1, ifacey, ifacez, ielem)
-
-                    vxh = vx(samplingidx + 1, ifacey, ifacez, ielem)
-                    vyh = vy(samplingidx + 1, ifacey, ifacez, ielem)
-                    vzh = vz(samplingidx + 1, ifacey, ifacez, ielem)
-                  else if (iface .eq. 5) then
-                    ! Face corresponds to x-y plane at z = -1
-                    xh = xm1(ifacex, ifacey, samplingidx + 1, ielem)
-                    yh = ym1(ifacex, ifacey, samplingidx + 1, ielem)
-                    zh = zm1(ifacex, ifacey, samplingidx + 1, ielem)
-
-                    vxh = vx(ifacex, ifacey, samplingidx + 1, ielem)
-                    vyh = vy(ifacex, ifacey, samplingidx + 1, ielem)
-                    vzh = vz(ifacex, ifacey, samplingidx + 1, ielem)
-                  else if (iface .eq. 6) then
-                    ! Face corresponds to x-y plane at z = 1
-                    xh = xm1(ifacex, ifacey, lz1 - samplingidx, ielem)
-                    yh = ym1(ifacex, ifacey, lz1 - samplingidx, ielem)
-                    zh = zm1(ifacex, ifacey, lz1 - samplingidx, ielem)
-
-                    vxh = vx(ifacex, ifacey, lz1 - samplingidx, ielem)
-                    vyh = vy(ifacex, ifacey, lz1 - samplingidx, ielem)
-                    vzh = vz(ifacex, ifacey, lz1 - samplingidx, ielem)
-                  end if
 
                   
 c                  write(*,'(I2, I2, 12(F8.5, XX))') ielem, iface,
@@ -226,5 +173,92 @@ c                 write(*,*) ielem, iface, vxh, vyh, vzh, h
       write(*,*) "        [WMLES] Average sampled velocity = ",
      $           totalvxh/nwallnodes, totalvyh/nwallnodes,
      $           totalvzh/nwallnodes, h 
+      end if
+      end subroutine
+!=======================================================================
+!> @brief Compute sampling point coordinates and sample velocity
+!! @param[out]   xh              x coordinate of the sampling point
+!! @param[out]   yh              y coordinate of the sampling point
+!! @param[out]   zh              z coordinate of the sampling point
+!! @param[out]   vxh             x component of the sampled velocity
+!! @param[out]   vyh             y component of the sampled velocity
+!! @param[out]   vzh             z component of the sampled velocity
+!! @param[in]    ifacex          the x index of the face node
+!! @param[in]    ifacey          the y index of the face node
+!! @param[in]    ifacez          the x index of the face node
+!! @param[in]    iface           the index of the face in an element
+!! @param[in]    ielem           the index of the element
+!! @param[in]    samplingidx     the wall-norma lindex of the sampling point 
+      subroutine sample_index_based(xh, yh, zh,
+     $                              vxh, vyh, vzh,
+     $                              ifacex, ifacey, ifacez,
+     $                              iface, ielem, samplingidx)
+      implicit none
+     
+      include 'SIZE'
+      include 'GEOM'
+      include 'SOLN'
+
+      real xh, yh, zh
+      real vxh, vyh, vzh
+      integer ifacex, ifacey, ifacez
+      integer iface, ielem, samplingidx
+
+      ! We figure out the index the sampling point
+      ! location based on the plane the face is in
+      if (iface .eq. 1) then
+        ! Face corresponds to x-z plane at y = -1 
+        xh = xm1(ifacex, samplingidx + 1, ifacez, ielem)
+        yh = ym1(ifacex, samplingidx + 1, ifacez, ielem)
+        zh = zm1(ifacex, samplingidx + 1, ifacez, ielem)
+        
+        vxh = vx(ifacex, samplingidx + 1, ifacez, ielem)
+        vyh = vy(ifacex, samplingidx + 1, ifacez, ielem)
+        vzh = vz(ifacex, samplingidx + 1, ifacez, ielem)
+      else if (iface .eq. 2) then
+        ! Face corresponds to y-z plane at x = 1
+        xh = xm1(lx1 - samplingidx, ifacey, ifacez, ielem)
+        yh = ym1(lx1 - samplingidx, ifacey, ifacez, ielem)
+        zh = zm1(lx1 - samplingidx, ifacey, ifacez, ielem)
+
+        vxh = vx(lx1 - samplingidx, ifacey, ifacez, ielem)
+        vyh = vy(lx1 - samplingidx, ifacey, ifacez, ielem)
+        vzh = vz(lx1 - samplingidx, ifacey, ifacez, ielem)
+      else if (iface .eq. 3) then
+        ! Face corresponds to x-z plane at y = 1
+        xh = xm1(ifacex, ly1 - samplingidx, ifacez, ielem)
+        yh = ym1(ifacex, ly1 - samplingidx, ifacez, ielem)
+        zh = zm1(ifacex, ly1 - samplingidx, ifacez, ielem)
+
+        vxh = vx(ifacex, ly1 - samplingidx, ifacez, ielem)
+        vyh = vy(ifacex, ly1 - samplingidx, ifacez, ielem)
+        vzh = vz(ifacex, ly1 - samplingidx, ifacez, ielem)
+      else if (iface .eq. 4) then
+        ! Face corresponds to y-z plane at x = -1
+        xh = xm1(samplingidx + 1, ifacey, ifacez, ielem)
+        yh = ym1(samplingidx + 1, ifacey, ifacez, ielem)
+        zh = zm1(samplingidx + 1, ifacey, ifacez, ielem)
+
+        vxh = vx(samplingidx + 1, ifacey, ifacez, ielem)
+        vyh = vy(samplingidx + 1, ifacey, ifacez, ielem)
+        vzh = vz(samplingidx + 1, ifacey, ifacez, ielem)
+      else if (iface .eq. 5) then
+        ! Face corresponds to x-y plane at z = -1
+        xh = xm1(ifacex, ifacey, samplingidx + 1, ielem)
+        yh = ym1(ifacex, ifacey, samplingidx + 1, ielem)
+        zh = zm1(ifacex, ifacey, samplingidx + 1, ielem)
+
+        vxh = vx(ifacex, ifacey, samplingidx + 1, ielem)
+        vyh = vy(ifacex, ifacey, samplingidx + 1, ielem)
+        vzh = vz(ifacex, ifacey, samplingidx + 1, ielem)
+      else if (iface .eq. 6) then
+        ! Face corresponds to x-y plane at z = 1
+        xh = xm1(ifacex, ifacey, lz1 - samplingidx, ielem)
+        yh = ym1(ifacex, ifacey, lz1 - samplingidx, ielem)
+        zh = zm1(ifacex, ifacey, lz1 - samplingidx, ielem)
+
+        vxh = vx(ifacex, ifacey, lz1 - samplingidx, ielem)
+        vyh = vy(ifacex, ifacey, lz1 - samplingidx, ielem)
+        vzh = vz(ifacex, ifacey, lz1 - samplingidx, ielem)
       end if
       end subroutine

@@ -33,29 +33,30 @@
 
       ! The coordinates and velocity at the sampling point
       real xh, yh, zh, vxh, vyh, vzh, vhndot, magvh
+      
+      ! For averaging vxh for debug purposes
+      real totalvxh, totalvyh, totalvzh
 
       ! The distance to the sampling point
       real h
 
       real nu, utau, totalutau, newton
-
+      
       ! A guess for utau sent to the iterative solver
       real guess
       
       ! Laws of the wall
       external spalding_value, spalding_derivative
-
-      common /wmles/ tau
-
+      
       ! Grab various simulation parameters
       nu = param(2)
 
-      ! Fill with a default value for debugging purposes
-      !tau = -1
-
       nwallnodes = 0
       totalutau = 0
-
+      totalvxh = 0
+      totalvyh = 0
+      totalvzh = 0
+      
       do ielem=1, lelv
         do iface=1, 6 
 
@@ -219,5 +220,11 @@ c                 write(*,*) ielem, iface, vxh, vyh, vzh, h
         enddo
       enddo
       
-      write(*,*) "Average predicted Re_tau = ", totalutau/nwallnodes/nu 
+      if (nid .eq. 0) then
+      write(*,*) "        [WMLES] Average predicted Re_tau = ",
+     $           totalutau/nwallnodes/nu 
+      write(*,*) "        [WMLES] Average sampled velocity = ",
+     $           totalvxh/nwallnodes, totalvyh/nwallnodes,
+     $           totalvzh/nwallnodes, h 
+      end if
       end subroutine

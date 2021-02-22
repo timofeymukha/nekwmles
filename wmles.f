@@ -86,8 +86,8 @@
      $     'An initial guess for tau_w', rpar_real, 0, 5e-2, .false.,
      $     ' ')
  
-!       call rprm_rp_reg(wmles_IOstep_id,wmles_sec_id,'IOSTEP',
-!      $     'Frequency of filed saving',rpar_int,100,0.0,.false.,' ')
+      call rprm_rp_reg(wmles_samplingidx_id,wmles_sec_id,'SAMPLINGIDX',
+     $   'Wall-normal sampling point index',rpar_int,2,0.0,.false.,' ')
        
        ! set initialisation flag
        wmles_ifinit=.false.
@@ -127,12 +127,42 @@
       endif
       
       ! timing
-      ltim = dnekclock()
+!      ltim = dnekclock()
       
       ! get the guess for tau and assign
       call rprm_rp_get(itmp,rtmp,ltmp,ctmp,wmles_guess_id,rpar_real)
+      
+      ! Check that the guess for tau_w magnitude is positive
+      if (rtmp .le. 0) then
+        if (nid .eq. 0) then 
+          write(*,*)
+     $      "[WMLES] FATAL ERROR: The GUESS parameter must be positive"
+  
+        end if
+        call exitt
+      end if
       tau = rtmp
       
+      ! get and assign the wall-normal index of the sampling point
+      call rprm_rp_get(itmp,rtmp,ltmp,ctmp,wmles_samplingidx_id,
+     $                 rpar_int)
+      
+      ! Check that the sampling index is in [1; lx1-1]
+      if (itmp .lt. 1) then
+        if (nid .eq. 0) then 
+          write(*, *)
+     $      "[WMLES] FATAL ERROR: The SAMPLINGIDX must be >= 1"
+        end if
+        call exitt
+      elseif (itmp .ge. lx1) then
+        if (nid .eq. 0) then 
+          write(*, *)
+     $     "[WMLES] FATAL ERROR: The SAMPLINGIDX must be < lx1"
+        end if
+        call exitt
+      end if
+
+      samplingidx = itmp
     
       ! everything is initialised
       wmles_ifinit=.true.

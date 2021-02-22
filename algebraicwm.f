@@ -86,42 +86,7 @@ c                  write(*,*) ielem, iface, ifacez, ifacey, ifacex
      $                                    vxh, vyh, vzh,
      $                                    ifacex, ifacey, ifacez,
      $                                    iface, ielem, samplingidx)
-c                  write(*,*) ielem, unx(ifacex, ifacey, iface, ielem),
-c     $                       uny(ifacex, ifacey, iface, ielem),
-c     $                       unz(ifacex, ifacey, iface, ielem),
-c     $                       unr(ifacex, iface, ielem),
-c     $                       uns(ifacex, iface, ielem),
-c     $                       unt(ifacex, iface, ielem)
 
-
-c                  write(*,*) ielem, iface, xgll, ygll, zgll, ynormal
-
-                  ! Check the direction of the normal to figure out
-                  ! how to change the y index to select the sampling
-                  ! point.
-                  !if (ynormal .gt. 0) then
-                    !We are at the bottom wall
-                  !  yhind = ly1-1
-                  !else
-                  !  yhind = 2
-                  !endif
-                  
-
-
-                  
-c                  write(*,'(I2, I2, 12(F8.5, XX))') ielem, iface,
-c     $                       rxm1(ifacex, yhind, ifacez, ielem),
-c     $                       sxm1(ifacex, yhind, ifacez, ielem),
-c     $                       txm1(ifacex, yhind, ifacez, ielem),
-c     $                       rym1(ifacex, yhind, ifacez, ielem),
-c     $                       sym1(ifacex, yhind, ifacez, ielem),
-c     $                       tym1(ifacex, yhind, ifacez, ielem),
-c     $                       rzm1(ifacex, yhind, ifacez, ielem),
-c     $                       szm1(ifacex, yhind, ifacez, ielem),
-c     $                       tzm1(ifacex, yhind, ifacez, ielem),
-c     $                       xm1(ifacex, yhind, ifacez, ielem),
-c     $                       ym1(ifacex, yhind, ifacez, ielem),
-c     $                       zm1(ifacex, yhind, ifacez, ielem)
 
                   ! Vector between face node and sampling point
                   xh = xh - xgll
@@ -137,27 +102,56 @@ c     $                       zm1(ifacex, yhind, ifacez, ielem)
                   vyh = vyh - normaly*vhndot
                   vzh = vzh - normalz*vhndot
                   
+                  ! Sum up vh for debug output
                   totalvxh = totalvxh + vxh
                   totalvyh = totalvyh + vyh
                   totalvzh = totalvzh + vzh
-                  
 
+                  ! Magnitude of the sampled velocity
                   magvh = sqrt(vxh**2 + vyh**2 + vzh**2)
                  
-                  ! take the stress at the previous step as a guess
+                  ! take the stress mag at the previous step as a guess
                   ! inital value at simulation start is the GUESS param
-                  guess = sqrt(tau(ifacex, ifacey, ifacez, ielem))
+                  guess = tau(1, ifacex, ifacey, ifacez, ielem)**2 +
+     $                    tau(2, ifacex, ifacey, ifacez, ielem)**2 +
+     $                    tau(3, ifacex, ifacey, ifacez, ielem)**2
+
+                  ! Double sqrt to get utau.
+                  guess = sqrt(sqrt(guess))
+                  
                   utau = newton(spalding_value, spalding_derivative,
      $                          magvh, h, guess,
      $                          1e-4, 50)
+                  !write(*,*) guess, utau
                   totalutau = totalutau + utau
                   nwallnodes = nwallnodes + 1
-                  tau(ifacex, ifacey, ifacez, ielem) = utau**2
+                  
+                  ! Assign proportional to the velocity magnitudes at
+                  ! the sampling point
+                  tau(1, ifacex, ifacey, ifacez, ielem) = 
+     $              -utau**2*vxh/magvh
+                  tau(2, ifacex, ifacey, ifacez, ielem) = 
+     $              -utau**2*vyh/magvh
+                  tau(3, ifacex, ifacey, ifacez, ielem) = 
+     $              -utau**2*vzh/magvh
 
 c                 write(*,*) xgll, xh, ygll, yh, zgll, zh, h
 c                 write(*,*) vxh, h, tauw
 c                 write(*,*) ielem, iface, vxh, vyh, vzh, h
 
+c                  write(*,'(I2, I2, 12(F8.5, XX))') ielem, iface,
+c     $                       rxm1(ifacex, yhind, ifacez, ielem),
+c     $                       sxm1(ifacex, yhind, ifacez, ielem),
+c     $                       txm1(ifacex, yhind, ifacez, ielem),
+c     $                       rym1(ifacex, yhind, ifacez, ielem),
+c     $                       sym1(ifacex, yhind, ifacez, ielem),
+c     $                       tym1(ifacex, yhind, ifacez, ielem),
+c     $                       rzm1(ifacex, yhind, ifacez, ielem),
+c     $                       szm1(ifacex, yhind, ifacez, ielem),
+c     $                       tzm1(ifacex, yhind, ifacez, ielem),
+c     $                       xm1(ifacex, yhind, ifacez, ielem),
+c     $                       ym1(ifacex, yhind, ifacez, ielem),
+c     $                       zm1(ifacex, yhind, ifacez, ielem)
                 end do
               end do
             end do

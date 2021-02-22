@@ -76,10 +76,10 @@
  
       ! register parameters
       call rprm_rp_reg(wmles_logkappa_id, wmles_sec_id, 'LOGKAPPA',
-     $     'von Karman coefficient', rpar_real, 0, 0.387, .false.,' ')
+     $     'Von Karman coefficient', rpar_real, 0, 0.387, .false.,' ')
 
       call rprm_rp_reg(wmles_logb_id, wmles_sec_id, 'LOGB',
-     $     'the intercept of the log law', rpar_real, 0, 4.21, .false.,
+     $     'The intercept of the log law', rpar_real, 0, 4.21, .false.,
      $     ' ')
 
       call rprm_rp_reg(wmles_guess_id, wmles_sec_id, 'GUESS',
@@ -116,6 +116,8 @@
       logical ltmp
       character*20 ctmp
       
+      integer i, j, k, ielem
+       
       ! functions
       real dnekclock
 !-----------------------------------------------------------------------
@@ -141,7 +143,21 @@
         end if
         call exitt
       end if
-      tau = rtmp
+      
+      do ielem = 1, lelv
+        do k = 1, lz1
+          do j = 1, ly1
+            do i = 1, lx1
+              ! Assign the whole magnitude to the x component.
+              ! Does not matter since the magnitude of tau will be
+              ! used for the guess.
+              tau(1, i, j, k, ielem) = rtmp
+              tau(2, i, j, k, ielem) = 0
+              tau(3, i, j, k, ielem) = 0
+            end do
+          end do
+        end do
+      end do
       
       ! get and assign the wall-normal index of the sampling point
       call rprm_rp_get(itmp,rtmp,ltmp,ctmp,wmles_samplingidx_id,

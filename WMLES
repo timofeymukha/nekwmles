@@ -23,8 +23,11 @@
 
       common /wmlesl/ wmles_ifinit  
 
-! The array holding the wall shear stress magnitude
-      real tau(lx1, ly1, lz1, lelv)
+! The array holding the wall shear stress components.
+! The size is equal to the number of nodes in the domain x3.
+! This is a waste since we actually only need the boundary nodes
+! but it does make indexing much easier, so we keep it this way for now.
+      real tau(3, lx1, ly1, lz1, lelv)
       
       integer samplingidx
 

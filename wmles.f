@@ -83,7 +83,7 @@
      $     ' ')
 
       call rprm_rp_reg(wmles_guess_id, wmles_sec_id, 'GUESS',
-     $     'An initial guess for tau_w', rpar_real, 0, 5e-2, .false.,
+     $     'An initial guess for tau_w', rpar_real, 0, 0.002, .false.,
      $     ' ')
  
       call rprm_rp_reg(wmles_samplingidx_id,wmles_sec_id,'SAMPLINGIDX',

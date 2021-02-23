@@ -1,0 +1,5 @@
+[_WMLES]
+GUESS = 0.00173056 ! The guess for tau_w to be used at the first time-step
+SAMPLINGIDX = 2 ! The wall-normal index of the sampling point. 1 = first off-wall ggl point, etc.
+LOGKAPPA = 0.387 ! kappa in the log-law
+LOGB = 4.21 ! B in the log-law

@@ -122,7 +122,7 @@ c                  write(*,*) ielem, iface, ifacez, ifacey, ifacex
                   utau = newton(spalding_value, spalding_derivative,
      $                          magvh, h, guess,
      $                          1e-4, 50)
-                  !write(*,*) guess, utau
+
                   totalutau = totalutau + utau
                   nwallnodes = nwallnodes + 1
                   
@@ -179,10 +179,10 @@ c     $                       zm1(ifacex, yhind, ifacez, ielem)
 !! @param[out]   vzh             z component of the sampled velocity
 !! @param[in]    ifacex          the x index of the face node
 !! @param[in]    ifacey          the y index of the face node
-!! @param[in]    ifacez          the x index of the face node
+!! @param[in]    ifacez          the z index of the face node
 !! @param[in]    iface           the index of the face in an element
 !! @param[in]    ielem           the index of the element
-!! @param[in]    samplingidx     the wall-norma lindex of the sampling point 
+!! @param[in]    samplingidx     the wall-normal lindex of the sampling point 
       subroutine sample_index_based(xh, yh, zh,
      $                              vxh, vyh, vzh,
      $                              ifacex, ifacey, ifacez,

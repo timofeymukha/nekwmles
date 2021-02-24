@@ -1,5 +1,5 @@
 !> @brief Algebraic wall-model based on a law of the wall
-     subroutine algebraic_wm()
+      subroutine algebraic_wm()
       implicit none
 
       include 'SIZE'
@@ -135,23 +135,6 @@ c                  write(*,*) ielem, iface, ifacez, ifacey, ifacex
                   tau(3, ifacex, ifacey, ifacez, ielem) = 
      $              -utau**2*vzh/magvh
 
-c                 write(*,*) xgll, xh, ygll, yh, zgll, zh, h
-c                 write(*,*) vxh, h, tauw
-c                 write(*,*) ielem, iface, vxh, vyh, vzh, h
-
-c                  write(*,'(I2, I2, 12(F8.5, XX))') ielem, iface,
-c     $                       rxm1(ifacex, yhind, ifacez, ielem),
-c     $                       sxm1(ifacex, yhind, ifacez, ielem),
-c     $                       txm1(ifacex, yhind, ifacez, ielem),
-c     $                       rym1(ifacex, yhind, ifacez, ielem),
-c     $                       sym1(ifacex, yhind, ifacez, ielem),
-c     $                       tym1(ifacex, yhind, ifacez, ielem),
-c     $                       rzm1(ifacex, yhind, ifacez, ielem),
-c     $                       szm1(ifacex, yhind, ifacez, ielem),
-c     $                       tzm1(ifacex, yhind, ifacez, ielem),
-c     $                       xm1(ifacex, yhind, ifacez, ielem),
-c     $                       ym1(ifacex, yhind, ifacez, ielem),
-c     $                       zm1(ifacex, yhind, ifacez, ielem)
                 end do
               end do
             end do
@@ -182,7 +165,7 @@ c     $                       zm1(ifacex, yhind, ifacez, ielem)
 !! @param[in]    ifacez          the z index of the face node
 !! @param[in]    iface           the index of the face in an element
 !! @param[in]    ielem           the index of the element
-!! @param[in]    samplingidx     the wall-normal lindex of the sampling point 
+!! @param[in]    samplingidx     the wall-normal index of the sampling point 
       subroutine sample_index_based(xh, yh, zh,
      $                              vxh, vyh, vzh,
      $                              ifacex, ifacey, ifacez,

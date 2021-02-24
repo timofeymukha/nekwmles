@@ -1,5 +1,5 @@
-
-      subroutine algebraic_wm()
+!> @brief Algebraic wall-model based on a law of the wall
+     subroutine algebraic_wm()
       implicit none
 
       include 'SIZE'

@@ -95,7 +95,7 @@ c                  write(*,*) ielem, iface, ifacez, ifacey, ifacex
                   call sample_index_based(xh, yh, zh, 
      $                                    vxh, vyh, vzh,
      $                                    ifacex, ifacey, ifacez,
-     $                                    iface, ielem, samplingidx)
+     $                                    iface, ielem)
 
 
                   ! Vector between face node and sampling point
@@ -182,7 +182,7 @@ c                  write(*,*) ielem, iface, ifacez, ifacey, ifacex
       subroutine sample_index_based(xh, yh, zh,
      $                              vxh, vyh, vzh,
      $                              ifacex, ifacey, ifacez,
-     $                              iface, ielem, samplingidx)
+     $                              iface, ielem)
       implicit none
      
       include 'SIZE'
@@ -193,7 +193,7 @@ c                  write(*,*) ielem, iface, ifacez, ifacey, ifacex
       real xh, yh, zh
       real vxh, vyh, vzh
       integer ifacex, ifacey, ifacez
-      integer iface, ielem, samplingidx
+      integer iface, ielem
 
       ! Timer function and current time place holder
       real dnekclock, ltim

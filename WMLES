@@ -1,21 +1,21 @@
-!     module id and name
+c     module id and name
       integer wmles_id
       character*(*) wmles_name
       parameter(wmles_name='WMLES')
 
-!     initialisation flag
+c     initialisation flag
       logical wmles_ifinit
 
-!     runtime parameter part
-!     section id
+c     runtime parameter part
+c     section id
       integer wmles_sec_id  
-!     kappa in the log law
+c     kappa in the log law
       integer wmles_logkappa_id
-!     B in the log law
+c     B in the log law
       integer wmles_logb_id
-!     inital guess for the wall-shear stress
+c     inital guess for the wall-shear stress
       integer wmles_guess_id
-!     wall-normal index of the sampling point
+c     wall-normal index of the sampling point
       integer wmles_samplingidx_id
       
 c     timers
@@ -25,14 +25,15 @@ c     sampling
       integer wmles_tmr_sampling_id
       
       common /wmlesi/ wmles_sec_id, wmles_logkappa_id, wmles_logb_id,
+     $                wmles_guess_id, wmles_samplingidx_id,
      $                wmles_tmr_tot_id, wmles_tmr_sampling_id
 
       common /wmlesl/ wmles_ifinit  
 
-! The array holding the wall shear stress components.
-! The size is equal to the number of nodes in the domain x3.
-! This is a waste since we actually only need the boundary nodes
-! but it does make indexing much easier, so we keep it this way for now.
+c The array holding the wall shear stress components.
+c The size is equal to the number of nodes in the domain x3.
+c This is a waste since we actually only need the boundary nodes
+c but it does make indexing much easier, so we keep it this way for now.
       real tau(3, lx1, ly1, lz1, lelv)
       
       integer samplingidx

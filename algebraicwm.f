@@ -28,8 +28,8 @@
       ! Values of gll node coordinates
       real xgll, ygll, zgll
 
-      ! The components of the inward normal to a wall-face
-      real normalx, normaly, normalz
+      ! The components of the inward normal to a wall-face + counter
+      real normalx, normaly, normalz, inorm
 
       ! The coordinates and velocity at the sampling point
       real xh, yh, zh, vxh, vyh, vzh, vhndot, magvh
@@ -75,18 +75,22 @@
             call facind(frangex1, frangex2, frangey1,
      $                  frangey2, frangez1, frangez2,
      $                  lx1, ly1, lz1, iface)
+            
+            inorm = 0
+
             do ifacez=frangez1, frangez2
               do ifacey=frangey1, frangey2
                 do ifacex=frangex1, frangex2
 c                  write(*,*) ielem, iface, ifacez, ifacey, ifacex
+                  inorm = inorm + 1
                   xgll = xm1(ifacex, ifacey, ifacez, ielem)
                   ygll = ym1(ifacex, ifacey, ifacez, ielem)
                   zgll = zm1(ifacex, ifacey, ifacez, ielem)
 
                   ! inward face normal
-                  normalx = unx(ifacex, ifacey, iface, ielem)
-                  normaly = -uny(ifacex, ifacey, iface, ielem)
-                  normalz = unz(ifacex, ifacey, iface, ielem)
+                  normalx =  unx(inorm, 1, iface, ielem)
+                  normaly = -uny(inorm, 1, iface, ielem)
+                  normalz =  unz(inorm, 1, iface, ielem)
                   
                   call sample_index_based(xh, yh, zh, 
      $                                    vxh, vyh, vzh,

@@ -48,6 +48,12 @@
       ! Laws of the wall
       external spalding_value, spalding_derivative
       
+      ! Timer function and current time place holder
+      real dnekclock, ltim
+      
+      ! Start the timer 
+      ltim = dnekclock()
+
       ! Grab various simulation parameters
       nu = param(2)
 
@@ -151,6 +157,9 @@ c                  write(*,*) ielem, iface, ifacez, ifacey, ifacex
      $           totalvxh/nwallnodes, totalvyh/nwallnodes,
      $           totalvzh/nwallnodes, h 
       end if
+      ! Stop the timer and add to total
+      ltim = dnekclock() - ltim
+      call mntr_tmr_add(wmles_tmr_tot_id, 1, ltim)
       end subroutine
 !=======================================================================
 !> @brief Compute sampling point coordinates and sample velocity
@@ -175,11 +184,18 @@ c                  write(*,*) ielem, iface, ifacez, ifacey, ifacex
       include 'SIZE'
       include 'GEOM'
       include 'SOLN'
+      include 'WMLES'
 
       real xh, yh, zh
       real vxh, vyh, vzh
       integer ifacex, ifacey, ifacez
       integer iface, ielem, samplingidx
+
+      ! Timer function and current time place holder
+      real dnekclock, ltim
+      
+      ! Start the timer 
+      ltim = dnekclock()
 
       ! We figure out the index the sampling point
       ! location based on the plane the face is in
@@ -238,4 +254,8 @@ c                  write(*,*) ielem, iface, ifacez, ifacey, ifacex
         vyh = vy(ifacex, ifacey, lz1 - samplingidx, ielem)
         vzh = vz(ifacex, ifacey, lz1 - samplingidx, ielem)
       end if
+
+      ! Stop the timer and add to total
+      ltim = dnekclock() - ltim
+      call mntr_tmr_add(wmles_tmr_sampling_id, 1, ltim)
       end subroutine

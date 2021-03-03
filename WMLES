@@ -18,8 +18,14 @@
 !     wall-normal index of the sampling point
       integer wmles_samplingidx_id
       
+c     timers
+c     total
+      integer wmles_tmr_tot_id
+c     sampling
+      integer wmles_tmr_sampling_id
+      
       common /wmlesi/ wmles_sec_id, wmles_logkappa_id, wmles_logb_id,
-     $                wmles_guess_id, wmles_samplingidx_id
+     $                wmles_tmr_tot_id, wmles_tmr_sampling_id
 
       common /wmlesl/ wmles_ifinit  
 

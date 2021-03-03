@@ -48,17 +48,19 @@
      $      'Wall-Modelled LES')
  
       ! register timers
-!      call mntr_tmr_is_name_reg(lpmid,'FRM_TOT')
+      call mntr_tmr_is_name_reg(lpmid,'FRM_TOT')
+
       ! total time
-!      call mntr_tmr_reg(wmles_tmr_tot_id,lpmid,wmles_id,
-!     $     'STAT_TOT','Statistics total time',.false.)
-!      lpmid = wmles_tmr_tot_id
-!      ! initialisation
+      call mntr_tmr_reg(wmles_tmr_tot_id,lpmid,wmles_id,
+     $     'WMLES_TOT','Wall modelling total time',.false.)
+      lpmid = wmles_tmr_tot_id
+
+      ! initialisation
 !      call mntr_tmr_reg(wmles_tmr_ini_id,lpmid,wmles_id,
 !     $     'STAT_INI','Statistics initialisation time',.true.)
-!      ! averagign
-!      call mntr_tmr_reg(wmles_tmr_avg_id,lpmid,wmles_id,
-!     $     'STAT_AVG','Statistics averaging time',.true.)
+      ! sampling
+      call mntr_tmr_reg(wmles_tmr_sampling_id,lpmid,wmles_id,
+     $     'WMLES_SMP','Sampling the data to the wall model',.true.)
  
 !      if (wmles_rdim.eq.1) then
 !      ! communication
@@ -93,8 +95,8 @@
        wmles_ifinit=.false.
  
        ! timing
-!       ltim = dnekclock() - ltim
-!       call mntr_tmr_add(wmles_tmr_tot_id,1,ltim)
+       ltim = dnekclock() - ltim
+       call mntr_tmr_add(wmles_tmr_tot_id,1,ltim)
  
        return
        end subroutine

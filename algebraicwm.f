@@ -47,7 +47,7 @@
       
       ! Laws of the wall
       external spalding_value, spalding_derivative
-      
+
       ! Timer function and current time place holder
       real dnekclock, ltim
       
@@ -161,6 +161,9 @@ c                  write(*,*) ielem, iface, ifacez, ifacey, ifacex
      $           totalvxh/nwallnodes, totalvyh/nwallnodes,
      $           totalvzh/nwallnodes, h 
       end if
+      
+      call set_viscosity()
+
       ! Stop the timer and add to total
       ltim = dnekclock() - ltim
       call mntr_tmr_add(wmles_tmr_tot_id, 1, ltim)
@@ -262,4 +265,115 @@ c                  write(*,*) ielem, iface, ifacez, ifacey, ifacex
       ! Stop the timer and add to total
       ltim = dnekclock() - ltim
       call mntr_tmr_add(wmles_tmr_sampling_id, 1, ltim)
+      end subroutine
+!=======================================================================
+!> @brief Set the artificial viscosity att the wall
+      subroutine set_viscosity()
+      implicit none
+      include 'SIZE'
+      include 'INPUT'
+      include 'SOLN'
+      include 'GEOM'
+      include 'WMLES'
+
+      ! face normal components
+      real normalx, normaly, normalz
+
+      ! the rate of strain tensor
+      real sij (lx1,ly1,lz1,6,lelv)
+
+      ! sij components at a node
+      real sxx, sxy, sxz, syx, syy, syz, szx, szy, szz
+      
+      ! S_ij n_j dot product components at a wall node
+      real snx, sny, snz, magsij
+      
+      ! normal wall stress
+      real snormal
+      
+      ! the magnitude of the wall shear stress predicted by the model
+      real magtau
+
+      ! stuff necessary to compute sij
+      integer lr
+      parameter (lr=lx1*ly1*lz1)
+
+      common /scruz/         ur(lr),us(lr),ut(lr)
+     $                     , vr(lr),vs(lr),vt(lr)
+     $                     , wr(lr),ws(lr),wt(lr)
+      real ur, us, ut, vr, vs, vt, wr, ws, wt
+
+      ! counters for boundary traversing
+      integer ielem, iface, inorm
+      integer frangex1, frangex2, frangey1, frangey2, frangez1, frangez2
+      integer ifacex, ifacey, ifacez
+      
+      ! compute the rate of strain. 
+      call comp_sij(sij,6,vx,vy,vz,ur,us,ut,vr,vs,vt,wr,ws,wt)
+
+      ! compute the articifial viscosity at each wall face
+      do ielem = 1, nelt
+        do iface=1, 6
+          if (boundaryID(iface, ielem) .eq. 1) then
+            call facind(frangex1, frangex2, frangey1,
+     $                  frangey2, frangez1, frangez2,
+     $                  lx1, ly1, lz1, iface)
+            inorm = 0
+            do ifacez=frangez1, frangez2
+              do ifacey=frangey1, frangey2
+                do ifacex=frangex1, frangex2
+                  inorm = inorm + 1
+                  
+                  ! grab the normal
+                  normalx = unx(inorm, 1, iface, ielem)
+                  normaly = uny(inorm, 1, iface, ielem)
+                  normalz = unz(inorm, 1, iface, ielem)
+
+                  ! grab the components of sij
+                  ! (some redundancy here due to symmetry, but ok)
+                  sxx = sij(ifacex, ifacey, ifacez, 1, ielem)
+                  sxy = sij(ifacex, ifacey, ifacez, 4, ielem)
+                  sxz = sij(ifacex, ifacey, ifacez, 6, ielem)
+                  syx = sij(ifacex, ifacey, ifacez, 4, ielem)
+                  syy = sij(ifacex, ifacey, ifacez, 2, ielem)
+                  syz = sij(ifacex, ifacey, ifacez, 5, ielem)
+                  szx = sij(ifacex, ifacey, ifacez, 6, ielem)
+                  szy = sij(ifacex, ifacey, ifacez, 5, ielem)
+                  szz = sij(ifacex, ifacey, ifacez, 3, ielem)
+                  
+                  ! compute the dot product S_ijn_j at the wall
+                  snx = sxx*normalx + sxy*normaly + sxz*normalz
+                  sny = syx*normalx + syy*normaly + syz*normalz
+                  snz = szx*normalx + szy*normaly + szz*normalz
+
+                  ! we want only the shear stress
+                  ! first compute the nomrmal stress
+                  snormal = (snx*normalx + sny*normaly +snz*normalz)
+
+                  ! and now subtract it
+                  snx = snx - normalx*snormal
+                  sny = sny - normaly*snormal
+                  snz = snz - normalz*snormal
+                  
+                  ! reconstruct the magnute of tau from the components
+                  magtau =
+     $              sqrt
+     $              (
+     $                  tau(1,ifacex, ifacey, ifacez, ielem)**2 
+     $                + tau(2,ifacex, ifacey, ifacez, ielem)**2
+     $                + tau(3,ifacex, ifacey, ifacez, ielem)**2
+     $              )
+                  !magtau = 0.00172118776384
+                  magsij = sqrt(snx**2 + sny**2 + snz**2)
+                  vdiff(ifacex, ifacey, ifacez, ielem, 1) =magtau/magsij
+                end do
+              end do
+            end do
+            
+          endif
+        
+        end do
+      end do
+
+
       end subroutine

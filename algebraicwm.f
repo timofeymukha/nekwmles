@@ -69,7 +69,7 @@
           ! Get the velocity bc type for the face
           cb = cbc(iface, ielem, 1)
 
-          if ((cb .eq. 'sh ')) then
+          if (boundaryID(iface, ielem) .eq. 1) then
 
             ! Grab index limits for traversing the face
             call facind(frangex1, frangex2, frangey1,

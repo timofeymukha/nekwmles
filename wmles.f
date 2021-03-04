@@ -87,7 +87,7 @@
       call rprm_rp_reg(wmles_guess_id, wmles_sec_id, 'GUESS',
      $     'An initial guess for tau_w', rpar_real, 0, 0.002, .false.,
      $     ' ')
- 
+
       call rprm_rp_reg(wmles_bid_id, wmles_sec_id, 'WALLBID',
      $     'Boundary ID of the wall faces', rpar_int, 1, 0.0, .false.,
      $     ' ')
@@ -168,6 +168,8 @@
       ! get and assign the wall-normal index of the sampling point
       call rprm_rp_get(itmp,rtmp,ltmp,ctmp,wmles_samplingidx_id,
      $                 rpar_int)
+      samplingidx = itmp
+
       ! get and assign the id of the wall boundary
       call rprm_rp_get(itmp,rtmp,ltmp,ctmp,wmles_bid_id,
      $                 rpar_int)

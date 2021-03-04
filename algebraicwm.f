@@ -51,6 +51,10 @@
       ! Timer function and current time place holder
       real dnekclock, ltim
       
+      ! Function for reduction across processors
+      integer iglsum
+      real glsum
+      
       ! Start the timer 
       ltim = dnekclock()
 
@@ -81,7 +85,7 @@
             do ifacez=frangez1, frangez2
               do ifacey=frangey1, frangey2
                 do ifacex=frangex1, frangex2
-c                  write(*,*) ielem, iface, ifacez, ifacey, ifacex
+
                   inorm = inorm + 1
                   xgll = xm1(ifacex, ifacey, ifacez, ielem)
                   ygll = ym1(ifacex, ifacey, ifacez, ielem)
@@ -153,6 +157,12 @@ c                  write(*,*) ielem, iface, ifacez, ifacey, ifacex
 
         enddo
       enddo
+      
+      totalutau = glsum(totalutau, 1)
+      totalvxh = glsum(totalvxh, 1)
+      totalvyh = glsum(totalvyh, 1)
+      totalvzh = glsum(totalvzh, 1)
+      nwallnodes = iglsum(nwallnodes, 1)
       
       if (nid .eq. 0) then
       write(*,*) "        [WMLES] Average predicted Re_tau = ",

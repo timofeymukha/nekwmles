@@ -1,0 +1,7 @@
+[_WMLES]
+LOGKAPPA             = 0.38700000E+00         # Von Karman coefficient
+LOGB                 = 0.42100000E+01         # The intercept of the log law
+GUESS                = 0.17305600E-02         # An initial guess for tau_w
+WALLBID              = 1                      # Boundary ID of the wall faces
+SAMPLINGIDX          = 3                      # Wall-normal sampling point index
+IFVISCOSITY          = yes                    # Whether tau_w is imposed via wall viscosity

@@ -73,7 +73,7 @@
           ! Get the velocity bc type for the face
           cb = cbc(iface, ielem, 1)
 
-          if (boundaryID(iface, ielem) .eq. 1) then
+          if (boundaryID(iface, ielem) .eq. wallbid) then
 
             ! Grab index limits for traversing the face
             call facind(frangex1, frangex2, frangey1,
@@ -324,7 +324,7 @@
       ! compute the articifial viscosity at each wall face
       do ielem = 1, nelt
         do iface=1, 6
-          if (boundaryID(iface, ielem) .eq. 1) then
+          if (boundaryID(iface, ielem) .eq. wallbid) then
             call facind(frangex1, frangex2, frangey1,
      $                  frangey2, frangez1, frangez2,
      $                  lx1, ly1, lz1, iface)

@@ -6,7 +6,7 @@ c     module id and name
 c     initialisation flag
       logical wmles_ifinit
 
-c     runtime parameter part
+c     Runtime parameter part
 c     section id
       integer wmles_sec_id  
 c     kappa in the log law
@@ -19,27 +19,36 @@ c     the boundary id identifying walls on which modelling is applied
       integer wmles_bid_id
 c     wall-normal index of the sampling point
       integer wmles_samplingidx_id
+c     wether to use wall viscosity or a traction boundary
+      integer wmles_ifviscosity_id
       
-c     timers
+c     Timers
 c     total
       integer wmles_tmr_tot_id
 c     sampling
       integer wmles_tmr_sampling_id
       
-      common /wmlesi/ wmles_sec_id, wmles_logkappa_id, wmles_logb_id,
-     $                wmles_guess_id, wmles_samplingidx_id,
-     $                wmles_bid_id,
-     $                wmles_tmr_tot_id, wmles_tmr_sampling_id
-
-      common /wmlesl/ wmles_ifinit  
-
-c The array holding the wall shear stress components.
-c The size is equal to the number of nodes in the domain x3.
-c This is a waste since we actually only need the boundary nodes
-c but it does make indexing much easier, so we keep it this way for now.
+c     The array holding the wall shear stress components.
+c     The size is equal to the number of nodes in the domain x3.
+c     This is a waste since we actually only need the boundary nodes
+c     but it does make indexing much easier, so we keep it this way
+c     for now.
       real tau(3, lx1, ly1, lz1, lelv)
       
+c     The off-wall index of the sampling point
       integer samplingidx
+c     The boundary id for the walls
       integer wallbid
+c     Whether to use viscosity at the wall to enforce tau
+      logical ifviscosity
 
-      common /wmles/ tau, samplingidx, wallbid
+c     Common blocks split by variable type
+      common /wmlesi/ wmles_sec_id, wmles_logkappa_id, wmles_logb_id,
+     $                wmles_guess_id, wmles_samplingidx_id,
+     $                wmles_bid_id, wmles_ifviscosity_id,
+     $                wmles_tmr_tot_id, wmles_tmr_sampling_id,
+     $                samplingidx, wallbid
+
+      common /wmlesl/ wmles_ifinit, ifviscosity  
+
+      common /wmlesr/ tau

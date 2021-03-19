@@ -94,6 +94,10 @@
  
       call rprm_rp_reg(wmles_samplingidx_id,wmles_sec_id,'SAMPLINGIDX',
      $   'Wall-normal sampling point index',rpar_int,2,0.0,.false.,' ')
+
+      call rprm_rp_reg(wmles_ifviscosity_id,wmles_sec_id,'IFVISCOSITY',
+     $   'Whether tau_w is imposed via wall viscosity',
+     $    rpar_log, 0, 0.0, .true.,' ')
        
        ! set initialisation flag
        wmles_ifinit=.false.
@@ -138,7 +142,7 @@
 !      ltim = dnekclock()
       
       ! get the guess for tau and assign
-      call rprm_rp_get(itmp,rtmp,ltmp,ctmp,wmles_guess_id,rpar_real)
+      call rprm_rp_get(itmp, rtmp, ltmp, ctmp, wmles_guess_id,rpar_real)
       
       ! Check that the guess for tau_w magnitude is positive
       if (rtmp .le. 0) then
@@ -166,12 +170,12 @@
       end do
       
       ! get and assign the wall-normal index of the sampling point
-      call rprm_rp_get(itmp,rtmp,ltmp,ctmp,wmles_samplingidx_id,
+      call rprm_rp_get(itmp, rtmp, ltmp, ctmp, wmles_samplingidx_id,
      $                 rpar_int)
       samplingidx = itmp
 
       ! get and assign the id of the wall boundary
-      call rprm_rp_get(itmp,rtmp,ltmp,ctmp,wmles_bid_id,
+      call rprm_rp_get(itmp, rtmp, ltmp, ctmp, wmles_bid_id,
      $                 rpar_int)
       wallbid = itmp
       
@@ -191,6 +195,12 @@
       end if
 
       samplingidx = itmp
+
+      ! get and assign the wall viscosity flag
+      call rprm_rp_get(itmp, rtmp, ltmp, ctmp, wmles_ifviscosity_id,
+     $                 rpar_log)
+      
+      ifviscosity = ltmp
     
       ! everything is initialised
       wmles_ifinit=.true.

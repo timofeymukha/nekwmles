@@ -382,7 +382,7 @@
 
                   magsij = sqrt(snx**2 + sny**2 + snz**2)
                   vdiff(ifacex, ifacey, ifacez, ielem, 1) = 
-     $              magtau/magsij + param(2)
+     $              magtau/magsij
                 end do
               end do
             end do

@@ -172,7 +172,13 @@
      $           totalvzh/nwallnodes, h 
       end if
       
-      call set_viscosity()
+      ! If we use viscosity to impose the shear stress, then
+      ! we expect a no-slip velocity bc and we call the set_viscosity
+      ! function. Otherwise, we expect a 'sh ' bc and nothing needs
+      ! be done here, isntead traction is to be assigned in userbc.
+      if (ifviscosity) then
+        call set_viscosity()
+      end if
 
       ! Stop the timer and add to total
       ltim = dnekclock() - ltim
@@ -365,7 +371,7 @@
                   sny = sny - normaly*snormal
                   snz = snz - normalz*snormal
                   
-                  ! reconstruct the magnute of tau from the components
+                  ! reconstruct the magnitude of tau from the components
                   magtau =
      $              sqrt
      $              (
@@ -373,9 +379,10 @@
      $                + tau(2,ifacex, ifacey, ifacez, ielem)**2
      $                + tau(3,ifacex, ifacey, ifacez, ielem)**2
      $              )
-                  !magtau = 0.00172118776384
+
                   magsij = sqrt(snx**2 + sny**2 + snz**2)
-                  vdiff(ifacex, ifacey, ifacez, ielem, 1) =magtau/magsij
+                  vdiff(ifacex, ifacey, ifacez, ielem, 1) = 
+     $              magtau/magsij + param(2)
                 end do
               end do
             end do

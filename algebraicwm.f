@@ -35,7 +35,7 @@
       real xh, yh, zh, vxh, vyh, vzh, vhndot, magvh
       
       ! For averaging vxh for debug purposes
-      real totalvxh, totalvyh, totalvzh
+      real totalvxh, totalvyh, totalvzh, totalh
 
       ! The distance to the sampling point
       real h
@@ -66,6 +66,7 @@
       totalvxh = 0
       totalvyh = 0
       totalvzh = 0
+      totalh = 0
       
       do ielem=1, lelv
         do iface=1, 6 
@@ -102,6 +103,8 @@
      $                                    iface, ielem)
 
 
+
+
                   ! Vector between face node and sampling point
                   xh = xh - xgll
                   yh = yh - ygll
@@ -120,6 +123,7 @@
                   totalvxh = totalvxh + vxh
                   totalvyh = totalvyh + vyh
                   totalvzh = totalvzh + vzh
+                  totalh = totalh + h
 
                   ! Magnitude of the sampled velocity
                   magvh = sqrt(vxh**2 + vyh**2 + vzh**2)
@@ -136,7 +140,7 @@
                   utau = newton(spalding_value, spalding_derivative,
      $                          magvh, h, guess,
      $                          1e-4, 50)
-
+                  
                   totalutau = totalutau + utau
                   nwallnodes = nwallnodes + 1
                   
@@ -162,6 +166,7 @@
       totalvxh = glsum(totalvxh, 1)
       totalvyh = glsum(totalvyh, 1)
       totalvzh = glsum(totalvzh, 1)
+      totalh = glsum(totalh, 1)
       nwallnodes = iglsum(nwallnodes, 1)
       
       if (nid .eq. 0) then
@@ -169,7 +174,7 @@
      $           totalutau/nwallnodes/nu 
       write(*,*) "        [WMLES] Average sampled velocity = ",
      $           totalvxh/nwallnodes, totalvyh/nwallnodes,
-     $           totalvzh/nwallnodes, h 
+     $           totalvzh/nwallnodes, totalh/nwallnodes
       end if
       
       ! If we use viscosity to impose the shear stress, then
@@ -220,6 +225,7 @@
       ! Start the timer 
       ltim = dnekclock()
 
+
       ! We figure out the index the sampling point
       ! location based on the plane the face is in
       if (iface .eq. 1) then
@@ -231,6 +237,7 @@
         vxh = vx(ifacex, samplingidx + 1, ifacez, ielem)
         vyh = vy(ifacex, samplingidx + 1, ifacez, ielem)
         vzh = vz(ifacex, samplingidx + 1, ifacez, ielem)
+
       else if (iface .eq. 2) then
         ! Face corresponds to y-z plane at x = 1
         xh = xm1(lx1 - samplingidx, ifacey, ifacez, ielem)
@@ -394,3 +401,4 @@
 
 
       end subroutine
+

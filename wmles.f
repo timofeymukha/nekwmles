@@ -55,21 +55,9 @@
      $     'WMLES_TOT','Wall modelling total time',.false.)
       lpmid = wmles_tmr_tot_id
 
-      ! initialisation
-!      call mntr_tmr_reg(wmles_tmr_ini_id,lpmid,wmles_id,
-!     $     'STAT_INI','Statistics initialisation time',.true.)
-      ! sampling
       call mntr_tmr_reg(wmles_tmr_sampling_id,lpmid,wmles_id,
      $     'WMLES_SMP','Sampling the data to the wall model',.true.)
  
-!      if (wmles_rdim.eq.1) then
-!      ! communication
-!         call mntr_tmr_reg(wmles_tmr_cmm_id,lpmid,wmles_id,
-!     $        'STAT_CMM','Statistics communication time',.true.)
-!      endif
-!      ! IO
-!      call mntr_tmr_reg(wmles_tmr_io_id,lpmid,wmles_id,
-!     $     'STAT_IO','Statistics IO time',.true.)
  
       ! register and set active section
       call rprm_sec_reg(wmles_sec_id, wmles_id,'_'//adjustl(wmles_name),
@@ -193,8 +181,6 @@
         end if
         call exitt
       end if
-
-      samplingidx = itmp
 
       ! get and assign the wall viscosity flag
       call rprm_rp_get(itmp, rtmp, ltmp, ctmp, wmles_ifviscosity_id,

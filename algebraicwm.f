@@ -36,7 +36,7 @@
       real newvxh, newvyh, newvzh
       
       ! For averaging vxh for debug purposes
-      real totalvxh, totalvyh, totalvzh, totalh
+      real totalvxh, totalvyh, totalvzh, totalh, totalarea
 
       ! The distance to the sampling point
       real h
@@ -71,6 +71,8 @@
       totalvyh = 0
       totalvzh = 0
       totalh = 0
+      totalarea = 0
+
       if (ISTEP .eq. 0) then
         eps = 1.0
       else
@@ -105,6 +107,9 @@
                   normalx =  unx(inorm, 1, iface, ielem)
                   normaly = -uny(inorm, 1, iface, ielem)
                   normalz =  unz(inorm, 1, iface, ielem)
+
+                  totalarea = totalarea + area(inorm, 1, iface, ielem)
+
                   
                   call sample_index_based(xh, yh, zh, 
      $                                    newvxh, newvyh, newvzh,
@@ -158,7 +163,9 @@
      $                          magvh, h, guess,
      $                          1e-4, 50)
                   
-                  totalutau = totalutau + utau
+                  totalutau = totalutau + utau**2*area(inorm, 1,
+     $             iface, ielem)
+
                   nwallnodes = nwallnodes + 1
                   
                   ! Assign proportional to the velocity magnitudes at
@@ -184,11 +191,12 @@
       totalvyh = glsum(totalvyh, 1)
       totalvzh = glsum(totalvzh, 1)
       totalh = glsum(totalh, 1)
+      totalarea = glsum(totalarea, 1)
       nwallnodes = iglsum(nwallnodes, 1)
       
       if (nid .eq. 0) then
       write(*,*) "        [WMLES] Average predicted Re_tau = ",
-     $           totalutau/nwallnodes/nu 
+     $           sqrt(totalutau/totalarea)/nu 
       write(*,*) "        [WMLES] Average sampled velocity = ",
      $           totalvxh/nwallnodes, totalvyh/nwallnodes,
      $           totalvzh/nwallnodes, totalh/nwallnodes
@@ -399,7 +407,7 @@
                   magtau =
      $              sqrt
      $              (
-     $                  tau(1,ifacex, ifacey, ifacez, ielem)**2 
+     $                  tau(1,ifacex, ifacey, ifacez, ielem)**2
      $                + tau(2,ifacex, ifacey, ifacez, ielem)**2
      $                + tau(3,ifacex, ifacey, ifacez, ielem)**2
      $              )

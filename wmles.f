@@ -86,6 +86,10 @@
       call rprm_rp_reg(wmles_ifviscosity_id,wmles_sec_id,'IFVISCOSITY',
      $   'Whether tau_w is imposed via wall viscosity',
      $    rpar_log, 0, 0.0, .true.,' ')
+
+      call rprm_rp_reg(wmles_navrg_id,wmles_sec_id,'NAVRG',
+     $   'Number of time steps defining the input averaging time scale',
+     $    rpar_real, 0, 1.0, .false.,' ')
        
        ! set initialisation flag
        wmles_ifinit=.false.
@@ -187,6 +191,12 @@
      $                 rpar_log)
       
       ifviscosity = ltmp
+
+      ! get and assign the number of time-steps for input averaging
+      call rprm_rp_get(itmp, rtmp, ltmp, ctmp, wmles_navrg_id,
+     $                 rpar_real)
+      
+      wmles_navrg = rtmp
     
       ! everything is initialised
       wmles_ifinit=.true.

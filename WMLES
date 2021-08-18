@@ -21,6 +21,8 @@ c     wall-normal index of the sampling point
       integer wmles_samplingidx_id
 c     wether to use wall viscosity or a traction boundary
       integer wmles_ifviscosity_id
+c     number of iterations defining the time-scale for averaging
+      integer wmles_navrg_id
       
 c     Timers
 c     total
@@ -34,6 +36,8 @@ c     This is a waste since we actually only need the boundary nodes
 c     but it does make indexing much easier, so we keep it this way
 c     for now.
       real tau(3, lx1, ly1, lz1, lelv)
+c     number of iterations defining the time-scale for averaging
+      real wmles_navrg
       
 c     The off-wall index of the sampling point
       integer samplingidx
@@ -46,9 +50,10 @@ c     Common blocks split by variable type
       common /wmlesi/ wmles_sec_id, wmles_logkappa_id, wmles_logb_id,
      $                wmles_guess_id, wmles_samplingidx_id,
      $                wmles_bid_id, wmles_ifviscosity_id,
+     $                wmles_navrg_id,
      $                wmles_tmr_tot_id, wmles_tmr_sampling_id,
      $                samplingidx, wallbid
 
-      common /wmlesl/ wmles_ifinit, ifviscosity  
+      common /wmlesl/ wmles_ifinit, ifviscosity
 
-      common /wmlesr/ tau
+      common /wmlesr/ tau, wmles_navrg

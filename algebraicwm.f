@@ -33,12 +33,16 @@
 
       ! The coordinates and velocity at the sampling point
       real xh, yh, zh, vxh, vyh, vzh, vhndot, magvh
+      real newvxh, newvyh, newvzh
       
       ! For averaging vxh for debug purposes
       real totalvxh, totalvyh, totalvzh, totalh
 
       ! The distance to the sampling point
       real h
+
+      ! Time-averaging parameter
+      real eps
 
       real nu, utau, totalutau, newton
       
@@ -67,6 +71,11 @@
       totalvyh = 0
       totalvzh = 0
       totalh = 0
+      if (ISTEP .eq. 0) then
+        eps = 1.0
+      else
+        eps = 1/wmles_navrg
+      endif
       
       do ielem=1, lelv
         do iface=1, 6 
@@ -98,7 +107,7 @@
                   normalz =  unz(inorm, 1, iface, ielem)
                   
                   call sample_index_based(xh, yh, zh, 
-     $                                    vxh, vyh, vzh,
+     $                                    newvxh, newvyh, newvzh,
      $                                    ifacex, ifacey, ifacez,
      $                                    iface, ielem)
 
@@ -114,10 +123,18 @@
                   h = abs(xh*normalx + yh*normaly + zh*normalz)
                   
                   ! project sampled velocity on the face plane
-                  vhndot = (vxh*normalx + vyh*normaly + vzh*normalz)
-                  vxh = vxh - normalx*vhndot
-                  vyh = vyh - normaly*vhndot
-                  vzh = vzh - normalz*vhndot
+                  vhndot =
+     $              (newvxh*normalx + newvyh*normaly + newvzh*normalz)
+     
+                  newvxh = newvxh - normalx*vhndot
+                  newvyh = newvyh - normaly*vhndot
+                  newvzh = newvzh - normalz*vhndot
+
+
+                  ! time-averaging the input velocity
+                  vxh = eps*newvxh + (1 - eps)*vxh
+                  vyh = eps*newvyh + (1 - eps)*vyh
+                  vzh = eps*newvzh + (1 - eps)*vzh
                   
                   ! Sum up vh for debug output
                   totalvxh = totalvxh + vxh

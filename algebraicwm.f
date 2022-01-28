@@ -33,7 +33,6 @@
 
       ! The coordinates and velocity at the sampling point
       real xh, yh, zh, vxh, vyh, vzh, vhndot, magvh
-      real newvxh, newvyh, newvzh
       
       ! For averaging vxh for debug purposes
       real totalvxh, totalvyh, totalvzh, totalh, totalarea
@@ -112,7 +111,7 @@
 
                   
                   call sample_index_based(xh, yh, zh, 
-     $                                    newvxh, newvyh, newvzh,
+     $                                    vxh, vyh, vzh,
      $                                    ifacex, ifacey, ifacez,
      $                                    iface, ielem)
 
@@ -129,18 +128,30 @@
                   
                   ! project sampled velocity on the face plane
                   vhndot =
-     $              (newvxh*normalx + newvyh*normaly + newvzh*normalz)
+     $              (vxh*normalx + vyh*normaly + vzh*normalz)
      
-                  newvxh = newvxh - normalx*vhndot
-                  newvyh = newvyh - normaly*vhndot
-                  newvzh = newvzh - normalz*vhndot
+                  vxh = vxh - normalx*vhndot
+                  vyh = vyh - normaly*vhndot
+                  vzh = vzh - normalz*vhndot
 
 
                   ! time-averaging the input velocity
-                  vxh = eps*newvxh + (1 - eps)*vxh
-                  vyh = eps*newvyh + (1 - eps)*vyh
-                  vzh = eps*newvzh + (1 - eps)*vzh
-                  
+                  vh(1, ifacex, ifacey, ifacez, ielem) =
+     $               (1-eps)*vh(1, ifacex, ifacey, ifacez, ielem) +
+     $               eps*vxh
+                  vh(2, ifacex, ifacey, ifacez, ielem) =
+     $               (1-eps)*vh(2, ifacex, ifacey, ifacez, ielem) +
+     $               eps*vyh
+                  vh(3, ifacex, ifacey, ifacez, ielem) =
+     $               (1-eps)*vh(3, ifacex, ifacey, ifacez, ielem) +
+     $               eps*vzh
+
+                  ! for brevity reassign back
+                  vxh = vh(1, ifacex, ifacey, ifacez, ielem)
+                  vyh = vh(2, ifacex, ifacey, ifacez, ielem)
+                  vzh = vh(3, ifacex, ifacey, ifacez, ielem)
+
+
                   ! Sum up vh for debug output
                   totalvxh = totalvxh + vxh
                   totalvyh = totalvyh + vyh
@@ -414,7 +425,7 @@
 
                   magsij = sqrt(snx**2 + sny**2 + snz**2)
                   vdiff(ifacex, ifacey, ifacez, ielem, 1) = 
-     $              magtau/magsij
+     $              magtau/(magsij + 1e-10)
                 end do
               end do
             end do

@@ -23,7 +23,7 @@
       character*2 str
       ! functions
       real dnekclock
- !----------------------------------------------------------------------
+!----------------------------------------------------------------------
       ! timing
       ltim = dnekclock()
  
@@ -132,6 +132,8 @@
       
       ! timing
 !      ltim = dnekclock()
+
+      vh = 0
       
       ! get the guess for tau and assign
       call rprm_rp_get(itmp, rtmp, ltmp, ctmp, wmles_guess_id,rpar_real)
@@ -202,8 +204,8 @@
       wmles_ifinit=.true.
     
       ! timing
-   !   ltim = dnekclock() - ltim
-   !   call mntr_tmr_add(wmles_tmr_ini_id,1,ltim)
+!      ltim = dnekclock() - ltim
+!      call mntr_tmr_add(wmles_tmr_ini_id,1,ltim)
       
       return
       end subroutine

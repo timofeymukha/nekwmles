@@ -13,6 +13,8 @@ c     kappa in the log law
       integer wmles_logkappa_id
 c     B in the log law
       integer wmles_logb_id
+c     z0 in the rough log law
+      integer wmles_z0_id
 c     inital guess for the wall-shear stress
       integer wmles_guess_id
 c     the boundary id identifying walls on which modelling is applied 
@@ -43,7 +45,6 @@ c     sampled velocity
 c     number of iterations defining the time-scale for averaging
       real wmles_navrg
 
-      
 c     The off-wall index of the sampling point
       integer samplingidx
 c     The boundary id for the walls
@@ -53,7 +54,7 @@ c     Whether to use viscosity at the wall to enforce tau
 
 c     Common blocks split by variable type
       common /wmlesi/ wmles_sec_id, wmles_logkappa_id, wmles_logb_id,
-     $                wmles_guess_id, wmles_samplingidx_id,
+     $                wmles_z0_id, wmles_guess_id, wmles_samplingidx_id,
      $                wmles_bid_id, wmles_ifviscosity_id,
      $                wmles_navrg_id,
      $                wmles_tmr_tot_id, wmles_tmr_sampling_id,

@@ -35,7 +35,7 @@
       real xh, yh, zh, vxh, vyh, vzh, vhndot, magvh
       
       ! For averaging vxh for debug purposes
-      real totalvxh, totalvyh, totalvzh, totalh, totalarea
+      real totalvxh, totalvyh, totalvzh, totalh, totalarea, magutau
 
       ! The distance to the sampling point
       real h
@@ -48,8 +48,8 @@
       ! A guess for utau sent to the iterative solver
       real guess
       
-      ! Laws of the wall
-      external spalding_value, spalding_derivative
+      ! Function that actually computes the wall fluxes
+!      real set_wall_quantities
 
       ! Timer function and current time place holder
       real dnekclock, ltim
@@ -115,9 +115,6 @@
      $                                    ifacex, ifacey, ifacez,
      $                                    iface, ielem)
 
-
-
-
                   ! Vector between face node and sampling point
                   xh = xh - xgll
                   yh = yh - ygll
@@ -151,42 +148,24 @@
                   vyh = vh(2, ifacex, ifacey, ifacez, ielem)
                   vzh = vh(3, ifacex, ifacey, ifacez, ielem)
 
-
                   ! Sum up vh for debug output
                   totalvxh = totalvxh + vxh
                   totalvyh = totalvyh + vyh
                   totalvzh = totalvzh + vzh
                   totalh = totalh + h
 
-                  ! Magnitude of the sampled velocity
-                  magvh = sqrt(vxh**2 + vyh**2 + vzh**2)
-                 
-                  ! take the stress mag at the previous step as a guess
-                  ! inital value at simulation start is the GUESS param
-                  guess = tau(1, ifacex, ifacey, ifacez, ielem)**2 +
-     $                    tau(2, ifacex, ifacey, ifacez, ielem)**2 +
-     $                    tau(3, ifacex, ifacey, ifacez, ielem)**2
-
-                  ! Double sqrt to get utau.
-                  guess = sqrt(sqrt(guess))
+                  call set_wall_quantities(h, ifacex, ifacey,
+     $                                     ifacez, ielem)
                   
-                  utau = newton(spalding_value, spalding_derivative,
-     $                          magvh, h, guess,
-     $                          1e-4, 50)
+                  magutau = tau(1, ifacex, ifacey, ifacez, ielem)**2 +
+     $                      tau(2, ifacex, ifacey, ifacez, ielem)**2 +
+     $                      tau(3, ifacex, ifacey, ifacez, ielem)**2
+                  magutau = sqrt(sqrt(magutau))
                   
-                  totalutau = totalutau + utau**2*area(inorm, 1,
+                  totalutau = totalutau + magutau*area(inorm, 1,
      $             iface, ielem)
 
                   nwallnodes = nwallnodes + 1
-                  
-                  ! Assign proportional to the velocity magnitudes at
-                  ! the sampling point
-                  tau(1, ifacex, ifacey, ifacez, ielem) = 
-     $              -utau**2*vxh/magvh
-                  tau(2, ifacex, ifacey, ifacez, ielem) = 
-     $              -utau**2*vyh/magvh
-                  tau(3, ifacex, ifacey, ifacez, ielem) = 
-     $              -utau**2*vzh/magvh
 
                 end do
               end do

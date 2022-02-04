@@ -1,4 +1,57 @@
 !> @brief Spaldings law in implicit form
+      real function set_wall_quantities(h, ix, iy, iz, ie)
+      implicit none
+
+      include 'SIZE'
+      include 'WMLES'
+
+      ! sampling height
+      real h 
+
+      ! the indices of the gll point
+      integer ix, iy, iz, ie
+
+      ! solver for the law of the wall
+      real newton
+
+      ! Laws of the wall
+      external spalding_value, spalding_derivative
+
+      ! sampled velocity
+      real magvh
+
+      ! utau and a guess for it
+      real guess, utau
+!-----------------------------------------------------------------------
+
+      ! Magnitude of the sampled velocity
+      magvh = vh(1, ix, iy, iz, ie)**2 +
+     $        vh(2, ix, iy, iz, ie)**2 +
+     $        vh(3, ix, iy, iz, ie)**2
+      magvh = sqrt(magvh)
+     
+      ! take the stress mag at the previous step as a guess
+      ! inital value at simulation start is the GUESS param
+      guess = tau(1, ix, iy, iz, ie)**2 +
+     $        tau(2, ix, iy, iz, ie)**2 +
+     $        tau(3, ix, iy, iz, ie)**2
+
+      ! Double sqrt to get utau.
+      guess = sqrt(sqrt(guess))
+      utau = newton(spalding_value, spalding_derivative,
+     $              magvh, h, guess, 1e-4, 50)
+
+      ! Assign proportional to the velocity magnitudes at
+      ! the sampling point
+      tau(1, ix, iy, iz, ie) = -utau**2*vh(1, ix, iy, iz, ie)/magvh
+      tau(2, ix, iy, iz, ie) = -utau**2*vh(2, ix, iy, iz, ie)/magvh
+      tau(3, ix, iy, iz, ie) = -utau**2*vh(3, ix, iy, iz, ie)/magvh
+
+      end
+
+!-----------------------------------------------------------------------
+
+!> @brief Spaldings law in implicit form
 !! @param[in]   u                 velocity magnitude
 !! @param[in]   y                 wall-normal distance
 !! @param[in]   utau              friction velocity

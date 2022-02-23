@@ -1,5 +1,5 @@
-!> @brief Rough log law in implicit form
-      subroutine set_momentum_flux(h, ix, iy, iz, ie)
+!> @brief Rough log law for temperature in implicit form
+      subroutine set_heat_flux(h, ix, iy, iz, ie)
       implicit none
 
       include 'SIZE'
@@ -12,13 +12,10 @@
       ! the indices of the gll point
       integer ix, iy, iz, ie
 
-      ! sampled velocity
-      real magvh
-
       real utau
 
       ! log law parameters
-      real kappa, logb, z0
+      real kappa, logb, z1
 
       ! dummy variables for retrieving parameters
       integer itmp
@@ -29,21 +26,17 @@
       ! assign kappa and B and z0
       call rprm_rp_get(itmp,kappa,ltmp,ctmp,wmles_logkappa_id,rpar_real)
       call rprm_rp_get(itmp,logb,ltmp,ctmp,wmles_logb_id,rpar_real)
-      call rprm_rp_get(itmp,z0,ltmp,ctmp,wmles_z0_id,rpar_real)
+      call rprm_rp_get(itmp,z1,ltmp,ctmp,wmles_z1_id,rpar_real)
 
       ! Magnitude of the sampled velocity
-      magvh = vh(1, ix, iy, iz, ie)**2 +
-     $        vh(2, ix, iy, iz, ie)**2 +
-     $        vh(3, ix, iy, iz, ie)**2
-      magvh = sqrt(magvh)
+      utau = tau(1, ix, iy, iz, ie)**2 +
+     $       tau(2, ix, iy, iz, ie)**2 +
+     $       tau(3, ix, iy, iz, ie)**2
+      utau = sqrt(sqrt(utau))
      
       utau = (magvh - logb)*kappa/log(h/z0)
 
-      ! Assign proportional to the velocity magnitudes at
-      ! the sampling point
-      tau(1, ix, iy, iz, ie) = -utau**2*vh(1, ix, iy, iz, ie)/magvh
-      tau(2, ix, iy, iz, ie) = -utau**2*vh(2, ix, iy, iz, ie)/magvh
-      tau(3, ix, iy, iz, ie) = -utau**2*vh(3, ix, iy, iz, ie)/magvh
+      heat_flux(ix, iy, iz, ie) = -utau**2*th(1, ix, iy, iz, ie)/magvh
 
       end
 

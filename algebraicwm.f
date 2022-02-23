@@ -29,10 +29,11 @@
       real xgll, ygll, zgll
 
       ! The components of the inward normal to a wall-face + counter
-      real normalx, normaly, normalz, inorm
+      real normalx, normaly, normalz
+      integer inorm
 
-      ! The coordinates and velocity at the sampling point
-      real xh, yh, zh, vxh, vyh, vzh, vhndot, magvh
+      ! The coordinates, velocity, and temprature at the sampling point
+      real xh, yh, zh, vxh, vyh, vzh, vhndot, magvh, th
       
       ! For averaging vxh for debug purposes
       real totalvxh, totalvyh, totalvzh, totalh, totalarea, magutau
@@ -48,9 +49,6 @@
       ! A guess for utau sent to the iterative solver
       real guess
       
-      ! Function that actually computes the wall fluxes
-!      real set_wall_quantities
-
       ! Timer function and current time place holder
       real dnekclock, ltim
       
@@ -111,7 +109,7 @@
 
                   
                   call sample_index_based(xh, yh, zh, 
-     $                                    vxh, vyh, vzh,
+     $                                    vxh, vyh, vzh, th,
      $                                    ifacex, ifacey, ifacez,
      $                                    iface, ielem)
 
@@ -132,7 +130,7 @@
                   vzh = vzh - normalz*vhndot
 
 
-                  ! time-averaging the input velocity
+                  ! time-averaging the input 
                   vh(1, ifacex, ifacey, ifacez, ielem) =
      $               (1-eps)*vh(1, ifacex, ifacey, ifacez, ielem) +
      $               eps*vxh
@@ -142,6 +140,12 @@
                   vh(3, ifacex, ifacey, ifacez, ielem) =
      $               (1-eps)*vh(3, ifacex, ifacey, ifacez, ielem) +
      $               eps*vzh
+                  temph(ifacex, ifacey, ifacez, ielem) =
+     $               (1-eps)*temph(ifacex, ifacey, ifacez, ielem) +
+     $               eps*temph
+                  temps(ifacex, ifacey, ifacez, ielem) =
+     $               (1-eps)*temps(ifacex, ifacey, ifacez, ielem) +
+     $               eps*temps
 
                   ! for brevity reassign back
                   vxh = vh(1, ifacex, ifacey, ifacez, ielem)
@@ -154,8 +158,11 @@
                   totalvzh = totalvzh + vzh
                   totalh = totalh + h
 
-                  call set_wall_quantities(h, ifacex, ifacey,
+                  call set_momentum_flux(h, ifacex, ifacey,
      $                                     ifacez, ielem)
+                  if (ifheat) then
+                    call set_heat_flux(h, ifacex, ifacey, ifacez, ielem)
+                  end if
                   
                   magutau = tau(1, ifacex, ifacey, ifacez, ielem)**2 +
      $                      tau(2, ifacex, ifacey, ifacez, ielem)**2 +
@@ -185,8 +192,8 @@
       nwallnodes = iglsum(nwallnodes, 1)
       
       if (nid .eq. 0) then
-      write(*,*) "        [WMLES] Average predicted Re_tau = ",
-     $           sqrt(totalutau/totalarea)/nu 
+      write(*,*) "        [WMLES] Average predicted u_tau = ",
+     $           sqrt(totalutau/totalarea)
       write(*,*) "        [WMLES] Average sampled velocity = ",
      $           totalvxh/nwallnodes, totalvyh/nwallnodes,
      $           totalvzh/nwallnodes, totalh/nwallnodes
@@ -212,6 +219,8 @@
 !! @param[out]   vxh             x component of the sampled velocity
 !! @param[out]   vyh             y component of the sampled velocity
 !! @param[out]   vzh             z component of the sampled velocity
+!! @param[out]   th              the sampled temperature
+!! @param[out]   ts              the sampled surface temperature
 !! @param[in]    ifacex          the x index of the face node
 !! @param[in]    ifacey          the y index of the face node
 !! @param[in]    ifacez          the z index of the face node
@@ -219,7 +228,7 @@
 !! @param[in]    ielem           the index of the element
 !! @param[in]    samplingidx     the wall-normal index of the sampling point 
       subroutine sample_index_based(xh, yh, zh,
-     $                              vxh, vyh, vzh,
+     $                              vxh, vyh, vzh, th,
      $                              ifacex, ifacey, ifacez,
      $                              iface, ielem)
       implicit none
@@ -230,7 +239,7 @@
       include 'WMLES'
 
       real xh, yh, zh
-      real vxh, vyh, vzh
+      real vxh, vyh, vzh, th, ts
       integer ifacex, ifacey, ifacez
       integer iface, ielem
 
@@ -252,6 +261,8 @@
         vxh = vx(ifacex, samplingidx + 1, ifacez, ielem)
         vyh = vy(ifacex, samplingidx + 1, ifacez, ielem)
         vzh = vz(ifacex, samplingidx + 1, ifacez, ielem)
+        th = t(ifacex, samplingidx + 1, ifacez, ielem)
+        ts = t(ifacex, 1, ifacez, ielem)
 
       else if (iface .eq. 2) then
         ! Face corresponds to y-z plane at x = 1
@@ -262,6 +273,8 @@
         vxh = vx(lx1 - samplingidx, ifacey, ifacez, ielem)
         vyh = vy(lx1 - samplingidx, ifacey, ifacez, ielem)
         vzh = vz(lx1 - samplingidx, ifacey, ifacez, ielem)
+        th = t(lx1 - samplingidx, ifacey, ifacez, ielem)
+        ts = t(lx1, ifacey, ifacez, ielem)
       else if (iface .eq. 3) then
         ! Face corresponds to x-z plane at y = 1
         xh = xm1(ifacex, ly1 - samplingidx, ifacez, ielem)
@@ -271,6 +284,8 @@
         vxh = vx(ifacex, ly1 - samplingidx, ifacez, ielem)
         vyh = vy(ifacex, ly1 - samplingidx, ifacez, ielem)
         vzh = vz(ifacex, ly1 - samplingidx, ifacez, ielem)
+        th = t(ifacex, ly1 - samplingidx, ifacez, ielem)
+        ts = t(ifacex, ly1, ifacez, ielem)
       else if (iface .eq. 4) then
         ! Face corresponds to y-z plane at x = -1
         xh = xm1(samplingidx + 1, ifacey, ifacez, ielem)
@@ -280,6 +295,8 @@
         vxh = vx(samplingidx + 1, ifacey, ifacez, ielem)
         vyh = vy(samplingidx + 1, ifacey, ifacez, ielem)
         vzh = vz(samplingidx + 1, ifacey, ifacez, ielem)
+        th = t(samplingidx + 1, ifacey, ifacez, ielem)
+        ts = t(1, ifacey, ifacez, ielem)
       else if (iface .eq. 5) then
         ! Face corresponds to x-y plane at z = -1
         xh = xm1(ifacex, ifacey, samplingidx + 1, ielem)
@@ -289,6 +306,8 @@
         vxh = vx(ifacex, ifacey, samplingidx + 1, ielem)
         vyh = vy(ifacex, ifacey, samplingidx + 1, ielem)
         vzh = vz(ifacex, ifacey, samplingidx + 1, ielem)
+        th = t(ifacex, ifacey, samplingidx + 1, ielem)
+        ts = t(ifacex, ifacey, 1, ielem)
       else if (iface .eq. 6) then
         ! Face corresponds to x-y plane at z = 1
         xh = xm1(ifacex, ifacey, lz1 - samplingidx, ielem)
@@ -298,6 +317,8 @@
         vxh = vx(ifacex, ifacey, lz1 - samplingidx, ielem)
         vyh = vy(ifacex, ifacey, lz1 - samplingidx, ielem)
         vzh = vz(ifacex, ifacey, lz1 - samplingidx, ielem)
+        th = t(ifacex, ifacey, lz1 - samplingidx, ielem)
+        ts = t(ifacex, ifacey, lz1, ielem)
       end if
 
       ! Stop the timer and add to total

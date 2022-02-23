@@ -74,6 +74,9 @@
       call rprm_rp_reg(wmles_z0_id, wmles_sec_id, 'Z0',
      $     'The roughness height', rpar_real, 0, 0.1, .false.,
      $     ' ')
+      call rprm_rp_reg(wmles_z1_id, wmles_sec_id, 'Z1',
+     $     'The roughness height', rpar_real, 0, 0.1, .false.,
+     $     ' ')
 
       call rprm_rp_reg(wmles_guess_id, wmles_sec_id, 'GUESS',
      $     'An initial guess for tau_w', rpar_real, 0, 0.002, .false.,

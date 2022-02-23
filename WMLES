@@ -13,8 +13,8 @@ c     kappa in the log law
       integer wmles_logkappa_id
 c     B in the log law
       integer wmles_logb_id
-c     z0 in the rough log law
-      integer wmles_z0_id
+c     z0 in the rough log law and z1 for temperature
+      integer wmles_z0_id, wmles_z1_id
 c     inital guess for the wall-shear stress
       integer wmles_guess_id
 c     the boundary id identifying walls on which modelling is applied 
@@ -38,9 +38,15 @@ c     This is a waste since we actually only need the boundary nodes
 c     but it does make indexing much easier, so we keep it this way
 c     for now.
       real tau(3, lx1, ly1, lz1, lelv)
+c     Same for the wall heat flux
+      real heat_flux(lx1, ly1, lz1, lelv)
 
 c     sampled velocity
       real vh(3, lx1, ly1, lz1, lelv)
+c     sampled temperature
+      real temph(lx1, ly1, lz1, lelv)
+c     surface temperature
+      real temps(lx1, ly1, lz1, lelv)
 
 c     number of iterations defining the time-scale for averaging
       real wmles_navrg
@@ -54,7 +60,8 @@ c     Whether to use viscosity at the wall to enforce tau
 
 c     Common blocks split by variable type
       common /wmlesi/ wmles_sec_id, wmles_logkappa_id, wmles_logb_id,
-     $                wmles_z0_id, wmles_guess_id, wmles_samplingidx_id,
+     $                wmles_z0_id, wmles_z1_id, wmles_guess_id,
+     $                wmles_samplingidx_id,
      $                wmles_bid_id, wmles_ifviscosity_id,
      $                wmles_navrg_id,
      $                wmles_tmr_tot_id, wmles_tmr_sampling_id,
@@ -62,4 +69,4 @@ c     Common blocks split by variable type
 
       common /wmlesl/ wmles_ifinit, ifviscosity
 
-      common /wmlesr/ tau, wmles_navrg, vh
+      common /wmlesr/ tau, wmles_navrg, vh, heat_flux, temph, temps

@@ -1,5 +1,5 @@
 !> @brief Spaldings law in implicit form
-      real function set_wall_quantities(h, ix, iy, iz, ie)
+      real function set_momentum_flux(h, ix, iy, iz, ie)
       implicit none
 
       include 'SIZE'

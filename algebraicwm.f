@@ -33,10 +33,11 @@
       integer inorm
 
       ! The coordinates, velocity, and temprature at the sampling point
-      real xh, yh, zh, vxh, vyh, vzh, vhndot, magvh, th
+      real xh, yh, zh, vxh, vyh, vzh, vhndot, magvh, th, ts
       
       ! For averaging vxh for debug purposes
       real totalvxh, totalvyh, totalvzh, totalh, totalarea, magutau
+      real totalq, totalt
 
       ! The distance to the sampling point
       real h
@@ -64,6 +65,8 @@
 
       nwallnodes = 0
       totalutau = 0
+      totalt = 0
+      totalq = 0
       totalvxh = 0
       totalvyh = 0
       totalvzh = 0
@@ -107,9 +110,8 @@
 
                   totalarea = totalarea + area(inorm, 1, iface, ielem)
 
-                  
                   call sample_index_based(xh, yh, zh, 
-     $                                    vxh, vyh, vzh, th,
+     $                                    vxh, vyh, vzh, th, ts,
      $                                    ifacex, ifacey, ifacez,
      $                                    iface, ielem)
 
@@ -142,15 +144,16 @@
      $               eps*vzh
                   temph(ifacex, ifacey, ifacez, ielem) =
      $               (1-eps)*temph(ifacex, ifacey, ifacez, ielem) +
-     $               eps*temph
+     $               eps*th
                   temps(ifacex, ifacey, ifacez, ielem) =
      $               (1-eps)*temps(ifacex, ifacey, ifacez, ielem) +
-     $               eps*temps
+     $               eps*ts
 
                   ! for brevity reassign back
                   vxh = vh(1, ifacex, ifacey, ifacez, ielem)
                   vyh = vh(2, ifacex, ifacey, ifacez, ielem)
                   vzh = vh(3, ifacex, ifacey, ifacez, ielem)
+                  th = temph(ifacex, ifacey, ifacez, ielem)
 
                   ! Sum up vh for debug output
                   totalvxh = totalvxh + vxh
@@ -162,6 +165,10 @@
      $                                     ifacez, ielem)
                   if (ifheat) then
                     call set_heat_flux(h, ifacex, ifacey, ifacez, ielem)
+                    totalq = 
+     $                totalq + heat_flux(ifacex, ifacey, ifacez,ielem)*
+     $                         area(inorm, 1, iface, ielem) 
+                    totalt = totalt + th*area(inorm, 1, iface, ielem)
                   end if
                   
                   magutau = tau(1, ifacex, ifacey, ifacez, ielem)**2 +
@@ -182,8 +189,10 @@
 
         enddo
       enddo
-      
+     
       totalutau = glsum(totalutau, 1)
+      totalq = glsum(totalq, 1)
+      totalt = glsum(totalt, 1)
       totalvxh = glsum(totalvxh, 1)
       totalvyh = glsum(totalvyh, 1)
       totalvzh = glsum(totalvzh, 1)
@@ -192,11 +201,19 @@
       nwallnodes = iglsum(nwallnodes, 1)
       
       if (nid .eq. 0) then
-      write(*,*) "        [WMLES] Average predicted u_tau = ",
+        write(*,*) "        [WMLES] Average predicted u_tau = ",
      $           sqrt(totalutau/totalarea)
-      write(*,*) "        [WMLES] Average sampled velocity = ",
-     $           totalvxh/nwallnodes, totalvyh/nwallnodes,
-     $           totalvzh/nwallnodes, totalh/nwallnodes
+        write(*,*) "        [WMLES] Average sampled velocity = ",
+     $             totalvxh/nwallnodes, totalvyh/nwallnodes,
+     $             totalvzh/nwallnodes, totalh/nwallnodes
+        if (ifheat) then
+          write(*,*) "        [WMLES] Average predicted q = ",
+     $             totalq/totalarea
+          write(*,*) "        [WMLES] Average sampled t = ",
+     $               totalt/totalarea
+          write(*,*) "        [WMLES] Surface temprature = ",
+     $               wmles_surface_temp
+        endif
       end if
       
       ! If we use viscosity to impose the shear stress, then
@@ -228,7 +245,7 @@
 !! @param[in]    ielem           the index of the element
 !! @param[in]    samplingidx     the wall-normal index of the sampling point 
       subroutine sample_index_based(xh, yh, zh,
-     $                              vxh, vyh, vzh, th,
+     $                              vxh, vyh, vzh, th, ts,
      $                              ifacex, ifacey, ifacez,
      $                              iface, ielem)
       implicit none
@@ -261,8 +278,8 @@
         vxh = vx(ifacex, samplingidx + 1, ifacez, ielem)
         vyh = vy(ifacex, samplingidx + 1, ifacez, ielem)
         vzh = vz(ifacex, samplingidx + 1, ifacez, ielem)
-        th = t(ifacex, samplingidx + 1, ifacez, ielem)
-        ts = t(ifacex, 1, ifacez, ielem)
+        th = t(ifacex, samplingidx + 1, ifacez, ielem, 1)
+        ts = t(ifacex, 1, ifacez, ielem, 1)
 
       else if (iface .eq. 2) then
         ! Face corresponds to y-z plane at x = 1
@@ -273,8 +290,8 @@
         vxh = vx(lx1 - samplingidx, ifacey, ifacez, ielem)
         vyh = vy(lx1 - samplingidx, ifacey, ifacez, ielem)
         vzh = vz(lx1 - samplingidx, ifacey, ifacez, ielem)
-        th = t(lx1 - samplingidx, ifacey, ifacez, ielem)
-        ts = t(lx1, ifacey, ifacez, ielem)
+        th = t(lx1 - samplingidx, ifacey, ifacez, ielem, 1)
+        ts = t(lx1, ifacey, ifacez, ielem, 1)
       else if (iface .eq. 3) then
         ! Face corresponds to x-z plane at y = 1
         xh = xm1(ifacex, ly1 - samplingidx, ifacez, ielem)
@@ -284,8 +301,8 @@
         vxh = vx(ifacex, ly1 - samplingidx, ifacez, ielem)
         vyh = vy(ifacex, ly1 - samplingidx, ifacez, ielem)
         vzh = vz(ifacex, ly1 - samplingidx, ifacez, ielem)
-        th = t(ifacex, ly1 - samplingidx, ifacez, ielem)
-        ts = t(ifacex, ly1, ifacez, ielem)
+        th = t(ifacex, ly1 - samplingidx, ifacez, ielem, 1)
+        ts = t(ifacex, ly1, ifacez, ielem, 1)
       else if (iface .eq. 4) then
         ! Face corresponds to y-z plane at x = -1
         xh = xm1(samplingidx + 1, ifacey, ifacez, ielem)
@@ -295,8 +312,8 @@
         vxh = vx(samplingidx + 1, ifacey, ifacez, ielem)
         vyh = vy(samplingidx + 1, ifacey, ifacez, ielem)
         vzh = vz(samplingidx + 1, ifacey, ifacez, ielem)
-        th = t(samplingidx + 1, ifacey, ifacez, ielem)
-        ts = t(1, ifacey, ifacez, ielem)
+        th = t(samplingidx + 1, ifacey, ifacez, ielem, 1)
+        ts = t(1, ifacey, ifacez, ielem, 1)
       else if (iface .eq. 5) then
         ! Face corresponds to x-y plane at z = -1
         xh = xm1(ifacex, ifacey, samplingidx + 1, ielem)
@@ -306,8 +323,8 @@
         vxh = vx(ifacex, ifacey, samplingidx + 1, ielem)
         vyh = vy(ifacex, ifacey, samplingidx + 1, ielem)
         vzh = vz(ifacex, ifacey, samplingidx + 1, ielem)
-        th = t(ifacex, ifacey, samplingidx + 1, ielem)
-        ts = t(ifacex, ifacey, 1, ielem)
+        th = t(ifacex, ifacey, samplingidx + 1, ielem, 1)
+        ts = t(ifacex, ifacey, 1, ielem, 1)
       else if (iface .eq. 6) then
         ! Face corresponds to x-y plane at z = 1
         xh = xm1(ifacex, ifacey, lz1 - samplingidx, ielem)
@@ -317,8 +334,8 @@
         vxh = vx(ifacex, ifacey, lz1 - samplingidx, ielem)
         vyh = vy(ifacex, ifacey, lz1 - samplingidx, ielem)
         vzh = vz(ifacex, ifacey, lz1 - samplingidx, ielem)
-        th = t(ifacex, ifacey, lz1 - samplingidx, ielem)
-        ts = t(ifacex, ifacey, lz1, ielem)
+        th = t(ifacex, ifacey, lz1 - samplingidx, ielem, 1)
+        ts = t(ifacex, ifacey, lz1, ielem, 1)
       end if
 
       ! Stop the timer and add to total

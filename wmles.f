@@ -96,6 +96,9 @@
       call rprm_rp_reg(wmles_navrg_id,wmles_sec_id,'NAVRG',
      $   'Number of time steps defining the input averaging time scale',
      $    rpar_real, 0, 1.0, .false.,' ')
+      call rprm_rp_reg(wmles_surface_temp_id,wmles_sec_id,'TSURFACE',
+     $   'Surface temperature',
+     $    rpar_real, 0, 273, .false.,' ')
        
        ! set initialisation flag
        wmles_ifinit=.false.
@@ -137,7 +140,7 @@
       endif
       
       ! timing
-!      ltim = dnekclock()
+      ltim = dnekclock()
 
       vh = 0
       
@@ -205,12 +208,18 @@
      $                 rpar_real)
       
       wmles_navrg = rtmp
+
+      ! get and assign surface temperature
+      call rprm_rp_get(itmp, rtmp, ltmp, ctmp, wmles_surface_temp_id,
+     $                 rpar_real)
+      
+      wmles_surface_temp = rtmp
     
       ! everything is initialised
       wmles_ifinit=.true.
     
       ! timing
-!      ltim = dnekclock() - ltim
+      ltim = dnekclock() - ltim
 !      call mntr_tmr_add(wmles_tmr_ini_id,1,ltim)
       
       return

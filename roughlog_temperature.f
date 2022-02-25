@@ -1,4 +1,4 @@
-!> @brief Rough log law for temperature in implicit form
+!> @brief Rough log law for temperature 
       subroutine set_heat_flux(h, ix, iy, iz, ie)
       implicit none
 
@@ -8,6 +8,9 @@
 
       ! sampling height
       real h 
+
+      ! local sampled and surface temperature
+      real th, ts
 
       ! the indices of the gll point
       integer ix, iy, iz, ie
@@ -23,20 +26,26 @@
       character*20 ctmp
 !-----------------------------------------------------------------------
 
-      ! assign kappa and B and z0
+      ! assign kappa and B and z1
       call rprm_rp_get(itmp,kappa,ltmp,ctmp,wmles_logkappa_id,rpar_real)
       call rprm_rp_get(itmp,logb,ltmp,ctmp,wmles_logb_id,rpar_real)
       call rprm_rp_get(itmp,z1,ltmp,ctmp,wmles_z1_id,rpar_real)
 
-      ! Magnitude of the sampled velocity
+      ! Get utau (should be previously computed by set_momentum_flux)
       utau = tau(1, ix, iy, iz, ie)**2 +
      $       tau(2, ix, iy, iz, ie)**2 +
      $       tau(3, ix, iy, iz, ie)**2
       utau = sqrt(sqrt(utau))
      
-      utau = (magvh - logb)*kappa/log(h/z0)
+      th = temph(ix, iy, iz, ie)
+      
+      if (ifviscosity) then
+        ts = temps(ix, iy, iz, ie)
+      else
+        ts = wmles_surface_temp
+      endif
 
-      heat_flux(ix, iy, iz, ie) = -utau**2*th(1, ix, iy, iz, ie)/magvh
+      heat_flux(ix, iy, iz, ie) = kappa*utau*(ts - th)/log(h/z1)
 
       end
 

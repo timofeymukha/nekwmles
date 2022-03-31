@@ -37,7 +37,7 @@
       
       ! For averaging vxh for debug purposes
       real totalvxh, totalvyh, totalvzh, totalh, totalarea, magutau
-      real totalq, totalt
+      real totalq, totalt, totalts
 
       ! The distance to the sampling point
       real h
@@ -66,6 +66,7 @@
       nwallnodes = 0
       totalutau = 0
       totalt = 0
+      totalts = 0
       totalq = 0
       totalvxh = 0
       totalvyh = 0
@@ -154,6 +155,7 @@
                   vyh = vh(2, ifacex, ifacey, ifacez, ielem)
                   vzh = vh(3, ifacex, ifacey, ifacez, ielem)
                   th = temph(ifacex, ifacey, ifacez, ielem)
+                  ts = temps(ifacex, ifacey, ifacez, ielem)
 
                   ! Sum up vh for debug output
                   totalvxh = totalvxh + vxh
@@ -169,14 +171,16 @@
      $                totalq + heat_flux(ifacex, ifacey, ifacez,ielem)*
      $                         area(inorm, 1, iface, ielem) 
                     totalt = totalt + th*area(inorm, 1, iface, ielem)
+                    totalts = totalts + ts*area(inorm, 1, iface, ielem)
                   end if
-                  
+
                   magutau = tau(1, ifacex, ifacey, ifacez, ielem)**2 +
      $                      tau(2, ifacex, ifacey, ifacez, ielem)**2 +
      $                      tau(3, ifacex, ifacey, ifacez, ielem)**2
                   magutau = sqrt(sqrt(magutau))
                   
-                  totalutau = totalutau + magutau*area(inorm, 1,
+                  ! actually sum tau here, sqrt after averaging
+                  totalutau = totalutau + magutau**2*area(inorm, 1,
      $             iface, ielem)
 
                   nwallnodes = nwallnodes + 1
@@ -189,10 +193,11 @@
 
         enddo
       enddo
-     
+
       totalutau = glsum(totalutau, 1)
       totalq = glsum(totalq, 1)
       totalt = glsum(totalt, 1)
+      totalts = glsum(totalts, 1)
       totalvxh = glsum(totalvxh, 1)
       totalvyh = glsum(totalvyh, 1)
       totalvzh = glsum(totalvzh, 1)
@@ -202,17 +207,17 @@
       
       if (nid .eq. 0) then
         write(*,*) "        [WMLES] Average predicted u_tau = ",
-     $           sqrt(totalutau/totalarea)
+     $             sqrt(totalutau/totalarea)
         write(*,*) "        [WMLES] Average sampled velocity = ",
      $             totalvxh/nwallnodes, totalvyh/nwallnodes,
      $             totalvzh/nwallnodes, totalh/nwallnodes
         if (ifheat) then
           write(*,*) "        [WMLES] Average predicted q = ",
-     $             totalq/totalarea
+     $               totalq/totalarea
           write(*,*) "        [WMLES] Average sampled t = ",
      $               totalt/totalarea
           write(*,*) "        [WMLES] Surface temprature = ",
-     $               wmles_surface_temp
+     $               wmles_surface_temp, totalts/totalarea
         endif
       end if
       

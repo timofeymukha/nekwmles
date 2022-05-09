@@ -98,8 +98,12 @@
      $    rpar_real, 0, 1.0, .false.,' ')
       call rprm_rp_reg(wmles_surface_temp_id,wmles_sec_id,'TSURFACE',
      $   'Surface temperature',
-     $    rpar_real, 0, 273, .false.,' ')
-       
+     $    rpar_real, 0, 273.0, .false.,' ')
+
+      call rprm_rp_reg(wmles_h_is_index_id,wmles_sec_id,'IFHISINDEX',
+     $   'Whether h holds consecutive index or distance',
+     $    rpar_log, 0, 0.0, .true.,' ')
+
        ! set initialisation flag
        wmles_ifinit=.false.
  
@@ -203,6 +207,12 @@
       
       ifviscosity = ltmp
 
+      ! get and assign the h is index flag
+      call rprm_rp_get(itmp, rtmp, ltmp, ctmp, wmles_h_is_index_id,
+     $                 rpar_log)
+      
+      ifhisindex = ltmp
+
       ! get and assign the number of time-steps for input averaging
       call rprm_rp_get(itmp, rtmp, ltmp, ctmp, wmles_navrg_id,
      $                 rpar_real)
@@ -214,9 +224,14 @@
      $                 rpar_real)
       
       wmles_surface_temp = rtmp
+
+
+      ! routine that sets h. should be provided by the user
+      call set_sampling_height
     
       ! everything is initialised
       wmles_ifinit=.true.
+
     
       ! timing
       ltim = dnekclock() - ltim

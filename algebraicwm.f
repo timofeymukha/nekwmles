@@ -79,6 +79,8 @@
       else
         eps = 1/wmles_navrg
       endif
+
+      call sample_distance_based
       
       do ielem=1, lelv
         do iface=1, 6 
@@ -348,6 +350,154 @@
       call mntr_tmr_add(wmles_tmr_sampling_id, 1, ltim)
       end subroutine
 !=======================================================================
+      subroutine sample_distance_based()
+      implicit none
+
+      include 'SIZE'
+      include 'INPUT'
+      include 'GEOM'
+      include 'SOLN'
+      include 'WMLES'
+
+      ! Values of gll node coordinates
+      real xgll, ygll, zgll
+
+      ! The components of the inward normal to a wall-face + counter
+      real normalx, normaly, normalz
+      integer inorm
+
+      ! Loop ranges for traversing face nodes
+      integer frangex1, frangex2, frangey1, frangey2, frangez1, frangez2
+
+      real xh, yh, zh
+      real vxh, vyh, vzh, th, ts
+      integer ifacex, ifacey, ifacez
+      integer iface, ielem
+
+      integer n_sampling
+
+      ! working arrays for interpolation as per
+      ! inter_nfld documentation
+      real    rwk(N_BOUNDARY_POINTS, ldim+1)
+      integer iwk(N_BOUNDARY_POINTS, 3)
+
+      ! sampled velocity and temperature fields
+      real sampled_fields(lx1, ly1, lz1, lelt, 3)
+
+      ! handle variable necessary for the interpolation
+      integer intp_h
+
+
+
+
+
+      ! Timer function and current time place holder
+      real dnekclock, ltim
+
+
+      n_sampling = 0
+
+      open (unit = 11, file = "sp")
+
+      do ielem=1, lelv
+        do iface=1, 6 
+
+          if (boundaryID(iface, ielem) .eq. wallbid) then
+
+            ! Grab index limits for traversing the face
+            call facind(frangex1, frangex2, frangey1,
+     $                  frangey2, frangez1, frangez2,
+     $                  lx1, ly1, lz1, iface)
+            
+            ! a linear index for the loop below
+            inorm = 0
+
+            do ifacez=frangez1, frangez2
+              do ifacey=frangey1, frangey2
+                do ifacex=frangex1, frangex2
+                  n_sampling = n_sampling + 1
+c
+                  inorm = inorm + 1
+                  xgll = xm1(ifacex, ifacey, ifacez, ielem)
+                  ygll = ym1(ifacex, ifacey, ifacez, ielem)
+                  zgll = zm1(ifacex, ifacey, ifacez, ielem)
+
+                  ! inward face normal
+                  normalx =  unx(inorm, 1, iface, ielem)
+                  normaly = -uny(inorm, 1, iface, ielem)
+                  normalz =  unz(inorm, 1, iface, ielem)
+
+                  sampling_points(n_sampling, 1) = 
+     $               xgll + normalx*sampling_h(n_sampling)
+                  sampling_points(n_sampling, 2) = 
+     $               ygll + normaly*sampling_h(n_sampling)
+                  sampling_points(n_sampling, 3) = 
+     $               zgll + normalz*sampling_h(n_sampling)
+
+c                  if (nid .eq. 0) then
+c                    write(*,*) wallbid, ygll, normaly, 
+c     $               lsampling_points(inorm, :), "\n"
+c                    write(11,*) nid, lsampling_points(inorm, 1),
+c     $               lsampling_points(inorm, 2),
+c     $               lsampling_points(inorm, 3)
+
+c                  end if
+                end do
+              end do
+            end do
+
+          endif
+
+        enddo
+      enddo
+      
+      call copy(sampled_fields(:, :, :, :, 1), vx, lx1*ly1*lz1*nelt)
+      call copy(sampled_fields(:, :, :, :, 2), vy, lx1*ly1*lz1*nelt)
+      call copy(sampled_fields(:, :, :, :, 3), vz, lx1*ly1*lz1*nelt)
+c      call copy(sampled_fields(:, :, :, :, 4), t, lx1*ly1*lz1*nelt)
+
+c      write(*,*) nid, "REAL NUMBER OF POINTS", n_sampling
+
+      call outpost(sampled_fields(:,:,:,:,1),
+     $             sampled_fields(:,:,:,:,2),
+     $             sampled_fields(:,:,:,:,3),
+     $             xm2,
+     $             sampled_fields(:,:,:,:,1),
+     $             'kek') 
+
+      ! Initialize the sampling
+      call interp_setup(intp_h, 0.0, 0, nelt)
+
+c          write(*,*) "Running interp_nfld"
+        call interp_nfld(
+     $    solh(:n_sampling, 1:3), !will store the sampled points
+     $    sampled_fields,         !will sample these
+     $    3,                      !number of fields
+     $    sampling_points(1:n_sampling, 1), ! x
+     $    sampling_points(1:n_sampling, 2), ! y
+     $    sampling_points(1:n_sampling, 3), ! z
+     $    n_sampling,                       ! number of points
+     $    iwk, rwk, N_BOUNDARY_POINTS,      ! work array stuff
+     $    .true.                            ! wether to find points
+     $    intp_h)                           ! handle
+
+c      if (n_sampling > 0) then
+c         write(*,*) "nid", nid, "points", xsampling_points(1:3),
+c     $    ysampling_points(1:3),
+c     $    "sampled", solh(1:200, 1), solh(1:3, 2)
+c       endif
+
+c      write(*,*) "Ran interp_nfld"
+
+
+      ! Start the timer 
+      ltim = dnekclock()
+
+      ! Stop the timer and add to total
+      ltim = dnekclock() - ltim
+      call mntr_tmr_add(wmles_tmr_sampling_id, 1, ltim)
+      end subroutine
+!=======================================================================
 !> @brief Set the artificial viscosity att the wall
       subroutine set_viscosity()
       implicit none
@@ -456,7 +606,6 @@
         
         end do
       end do
-
 
       end subroutine
 

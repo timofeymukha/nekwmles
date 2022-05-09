@@ -1,3 +1,10 @@
+c     USER SETTING: max local number of boundary points for which
+c     WMLES is applied. A check for it being large enough will be
+c     applied.
+      integer N_BOUNDARY_POINTS
+      parameter(N_BOUNDARY_POINTS=2000)
+
+
 c     module id and name
       integer wmles_id
       character*(*) wmles_name
@@ -27,6 +34,8 @@ c     number of iterations defining the time-scale for averaging
       integer wmles_navrg_id
 c     constant surface temperature
       integer wmles_surface_temp_id
+c     whether h is index or distance
+      integer wmles_h_is_index_id
       
 c     Timers
 c     total
@@ -45,10 +54,15 @@ c     Same for the wall heat flux
 
 c     sampled velocity
       real vh(3, lx1, ly1, lz1, lelv)
+      real solh(N_BOUNDARY_POINTS, 4)
 c     sampled temperature
       real temph(lx1, ly1, lz1, lelv)
 c     surface temperature
       real temps(lx1, ly1, lz1, lelv)
+c     sampling height
+      real sampling_h(N_BOUNDARY_POINTS)
+c     sampling points
+      real sampling_points(N_BOUNDARY_POINTS, 3)
 
 c     number of iterations defining the time-scale for averaging
       real wmles_navrg
@@ -61,6 +75,8 @@ c     The boundary id for the walls
       integer wallbid
 c     Whether to use viscosity at the wall to enforce tau
       logical ifviscosity
+c     Whether h is an integer index or a distance
+      logical ifhisindex
 
 c     Common blocks split by variable type
       common /wmlesi/ wmles_sec_id, wmles_logkappa_id, wmles_logb_id,
@@ -69,9 +85,10 @@ c     Common blocks split by variable type
      $                wmles_bid_id, wmles_ifviscosity_id,
      $                wmles_navrg_id, wmles_surface_temp_id,
      $                wmles_tmr_tot_id, wmles_tmr_sampling_id,
+     $                wmles_h_is_index_id,
      $                samplingidx, wallbid
 
-      common /wmlesl/ wmles_ifinit, ifviscosity
+      common /wmlesl/ wmles_ifinit, ifviscosity, ifhisindex
 
       common /wmlesr/ tau, wmles_navrg, vh, heat_flux, temph, temps,
-     $ wmles_surface_temp
+     $ wmles_surface_temp, sampling_h

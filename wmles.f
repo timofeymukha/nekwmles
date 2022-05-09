@@ -228,14 +228,22 @@
 
       ! routine that sets h. should be provided by the user
       call set_sampling_height
+      call find_sampling_points
     
+      ! Initialize the sampling
+      call interp_setup(wmles_interpolation_handle, 0.0, 0, nelt)
+      ! Set flag for finding interpolation points to true
+      ! Used by the built-ininterpolation routine
+      wmles_iffind = .true.
+
+
       ! everything is initialised
       wmles_ifinit=.true.
 
     
       ! timing
       ltim = dnekclock() - ltim
-!      call mntr_tmr_add(wmles_tmr_ini_id,1,ltim)
+      call mntr_tmr_add(wmles_tmr_tot_id, 1, ltim)
       
       return
       end subroutine
@@ -253,3 +261,96 @@
 
       return
       end function
+!=======================================================================
+!> @brief Outpost h and sampled velocity
+!! @ingroup wmles
+      subroutine wmles_outpost()
+      implicit none
+
+      include 'SIZE'
+      include 'INPUT'
+      include 'GEOM'
+      include 'WMLES'
+!-----------------------------------------------------------------------
+      real h(lx1, ly1, lz1, nelt)
+      real spx(lx1, ly1, lz1, nelt)
+      real spy(lx1, ly1, lz1, nelt)
+      real spz(lx1, ly1, lz1, nelt)
+      real svx(lx1, ly1, lz1, nelt)
+      real svy(lx1, ly1, lz1, nelt)
+      real svz(lx1, ly1, lz1, nelt)
+      real svt(lx1, ly1, lz1, nelt)
+
+      integer ntot
+      ! Loop ranges for traversing face nodes
+      integer frangex1, frangex2, frangey1, frangey2, frangez1, frangez2
+
+      integer ifacex, ifacey, ifacez
+      integer iface, ielem
+
+      ! Linear index
+      integer i_linear
+
+
+      ntot = lx1*ly1*lz1*nelt
+
+      ! Zero everywhere but the walls
+      call rzero(h, ntot)
+      call rzero(spx, ntot)
+      call rzero(spy, ntot)
+      call rzero(spz, ntot)
+      call rzero(svx, ntot)
+      call rzero(svy, ntot)
+      call rzero(svz, ntot)
+      call rzero(svt, ntot)
+
+      i_linear = 0
+
+      do ielem=1, lelv
+        do iface=1, 6 
+
+          if (boundaryID(iface, ielem) .eq. wallbid) then
+
+            ! Grab index limits for traversing the face
+            call facind(frangex1, frangex2, frangey1,
+     $                  frangey2, frangez1, frangez2,
+     $                  lx1, ly1, lz1, iface)
+            
+            do ifacez=frangez1, frangez2
+              do ifacey=frangey1, frangey2
+                do ifacex=frangex1, frangex2
+                  i_linear = i_linear + 1
+c
+                  h(ifacex, ifacey, ifacez, ielem) = 
+     $               sampling_h(i_linear)
+                  svx(ifacex, ifacey, ifacez, ielem) = 
+     $               solh(i_linear, 1)
+                  svy(ifacex, ifacey, ifacez, ielem) = 
+     $               solh(i_linear, 2)
+                  svz(ifacex, ifacey, ifacez, ielem) = 
+     $               solh(i_linear, 3)
+                  spx(ifacex, ifacey, ifacez, ielem) = 
+     $               sampling_points(i_linear, 1)
+                  spy(ifacex, ifacey, ifacez, ielem) = 
+     $               sampling_points(i_linear, 2)
+                  spz(ifacex, ifacey, ifacez, ielem) = 
+     $               sampling_points(i_linear, 3)
+                  if (ifheat) then
+                    svt(ifacex, ifacey, ifacez, ielem) = 
+     $                solh(i_linear, 4)
+                  endif
+
+                end do
+              end do
+            end do
+
+          endif
+
+        enddo
+      enddo
+      call outpost(h, h, h, xm2, h, 'wmh') 
+      call outpost(svx, svy, svz, xm2, svt, 'wmv') 
+      call outpost(spx, spy, spz, xm2, xm1, 'wmp') 
+
+      end subroutine
+

@@ -81,6 +81,8 @@
       endif
 
       call sample_distance_based
+c      call sample_distance_based
+c      call sample_distance_based
       
       do ielem=1, lelv
         do iface=1, 6 
@@ -350,15 +352,12 @@
       call mntr_tmr_add(wmles_tmr_sampling_id, 1, ltim)
       end subroutine
 !=======================================================================
-      subroutine sample_distance_based()
+      subroutine find_sampling_points()
       implicit none
-
       include 'SIZE'
       include 'INPUT'
       include 'GEOM'
-      include 'SOLN'
       include 'WMLES'
-
       ! Values of gll node coordinates
       real xgll, ygll, zgll
 
@@ -374,30 +373,16 @@
       integer ifacex, ifacey, ifacez
       integer iface, ielem
 
+      ! Linear index
       integer n_sampling
-
-      ! working arrays for interpolation as per
-      ! inter_nfld documentation
-      real    rwk(N_BOUNDARY_POINTS, ldim+1)
-      integer iwk(N_BOUNDARY_POINTS, 3)
-
-      ! sampled velocity and temperature fields
-      real sampled_fields(lx1, ly1, lz1, lelt, 3)
-
-      ! handle variable necessary for the interpolation
-      integer intp_h
-
-
-
-
 
       ! Timer function and current time place holder
       real dnekclock, ltim
 
+      ! Start the timer 
+      ltim = dnekclock()
 
       n_sampling = 0
-
-      open (unit = 11, file = "sp")
 
       do ielem=1, lelv
         do iface=1, 6 
@@ -434,14 +419,6 @@ c
                   sampling_points(n_sampling, 3) = 
      $               zgll + normalz*sampling_h(n_sampling)
 
-c                  if (nid .eq. 0) then
-c                    write(*,*) wallbid, ygll, normaly, 
-c     $               lsampling_points(inorm, :), "\n"
-c                    write(11,*) nid, lsampling_points(inorm, 1),
-c     $               lsampling_points(inorm, 2),
-c     $               lsampling_points(inorm, 3)
-
-c                  end if
                 end do
               end do
             end do
@@ -450,36 +427,86 @@ c                  end if
 
         enddo
       enddo
-      
+
+
+      n_boundary_points = n_sampling
+
+c      write(*,*) sampling_points(:n_boundary_points, 2)
+      ! Stop the timer and add to total
+      ltim = dnekclock() - ltim
+      call mntr_tmr_add(wmles_tmr_sampling_id, 1, ltim)
+      end subroutine
+!=======================================================================
+      subroutine sample_distance_based()
+      implicit none
+
+      include 'SIZE'
+      include 'INPUT'
+      include 'GEOM'
+      include 'SOLN'
+      include 'WMLES'
+
+      ! Values of gll node coordinates
+      real xgll, ygll, zgll
+
+      ! The components of the inward normal to a wall-face + counter
+      real normalx, normaly, normalz
+      integer inorm
+
+      real xh, yh, zh
+      real vxh, vyh, vzh, th, ts
+      integer ifacex, ifacey, ifacez
+      integer iface, ielem
+
+      ! working arrays for interpolation as per
+      ! inter_nfld documentation
+      real    rwk(NMAX_BOUNDARY_POINTS, ldim+1)
+      integer iwk(NMAX_BOUNDARY_POINTS, 3)
+
+      ! sampled velocity and temperature fields
+      real sampled_fields(lx1, ly1, lz1, lelt, 3)
+
+      ! handle variable necessary for the interpolation
+      integer intp_h
+
+      ! Timer function and current time place holder
+      real dnekclock, ltim
+
+      ! Start the timer 
+      ltim = dnekclock()
+
+c      write(*,*) sampling_points(:n_boundary_points, 2)
+
       call copy(sampled_fields(:, :, :, :, 1), vx, lx1*ly1*lz1*nelt)
       call copy(sampled_fields(:, :, :, :, 2), vy, lx1*ly1*lz1*nelt)
       call copy(sampled_fields(:, :, :, :, 3), vz, lx1*ly1*lz1*nelt)
 c      call copy(sampled_fields(:, :, :, :, 4), t, lx1*ly1*lz1*nelt)
 
-c      write(*,*) nid, "REAL NUMBER OF POINTS", n_sampling
+c      write(*,*) nid, "REAL NUMBER OF POINTS", n_boundary_points
 
-      call outpost(sampled_fields(:,:,:,:,1),
-     $             sampled_fields(:,:,:,:,2),
-     $             sampled_fields(:,:,:,:,3),
-     $             xm2,
-     $             sampled_fields(:,:,:,:,1),
-     $             'kek') 
+c      call outpost(sampled_fields(:,:,:,:,1),
+c     $             sampled_fields(:,:,:,:,2),
+c     $             sampled_fields(:,:,:,:,3),
+c     $             xm2,
+c     $             sampled_fields(:,:,:,:,1),
+c     $             'kek') 
 
-      ! Initialize the sampling
-      call interp_setup(intp_h, 0.0, 0, nelt)
 
 c          write(*,*) "Running interp_nfld"
         call interp_nfld(
-     $    solh(:n_sampling, 1:3), !will store the sampled points
+     $    solh(:n_boundary_points, 1:3), !will store the sampled points
      $    sampled_fields,         !will sample these
      $    3,                      !number of fields
-     $    sampling_points(1:n_sampling, 1), ! x
-     $    sampling_points(1:n_sampling, 2), ! y
-     $    sampling_points(1:n_sampling, 3), ! z
-     $    n_sampling,                       ! number of points
-     $    iwk, rwk, N_BOUNDARY_POINTS,      ! work array stuff
-     $    .true.                            ! wether to find points
-     $    intp_h)                           ! handle
+     $    sampling_points(1:n_boundary_points, 1), ! x
+     $    sampling_points(1:n_boundary_points, 2), ! y
+     $    sampling_points(1:n_boundary_points, 3), ! z
+     $    n_boundary_points,                       ! number of points
+     $    iwk, rwk, NMAX_BOUNDARY_POINTS,      ! work array stuff
+     $    wmles_iffind,                            ! wether to find points
+     $    wmles_interpolation_handle)                           ! handle
+
+        ! Turn off flag, actually needs to run once, but whatever
+        wmles_iffind = .false.
 
 c      if (n_sampling > 0) then
 c         write(*,*) "nid", nid, "points", xsampling_points(1:3),
@@ -490,8 +517,6 @@ c       endif
 c      write(*,*) "Ran interp_nfld"
 
 
-      ! Start the timer 
-      ltim = dnekclock()
 
       ! Stop the timer and add to total
       ltim = dnekclock() - ltim

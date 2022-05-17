@@ -13,6 +13,9 @@
       ! Some counters to traverse the velocity mesh
       integer ielem, iface, igllx, iglly, igllz
 
+      ! linear index for the solution at the boundary
+      integer i_linear
+
       ! Some counters to traversing face nodes
       integer ifacex, ifacey, ifacez
 
@@ -33,7 +36,7 @@
       integer inorm
 
       ! The coordinates, velocity, and temprature at the sampling point
-      real xh, yh, zh, vxh, vyh, vzh, vhndot, magvh, th, ts
+      real ts
       
       ! For averaging vxh for debug purposes
       real totalvxh, totalvyh, totalvzh, totalh, totalarea, magutau
@@ -41,9 +44,6 @@
 
       ! The distance to the sampling point
       real h
-
-      ! Time-averaging parameter
-      real eps
 
       real nu, utau, totalutau, newton
       
@@ -55,7 +55,7 @@
       
       ! Function for reduction across processors
       integer iglsum
-      real glsum
+      real glsum, vlsum
       
       ! Start the timer 
       ltim = dnekclock()
@@ -68,22 +68,14 @@
       totalt = 0
       totalts = 0
       totalq = 0
-      totalvxh = 0
-      totalvyh = 0
-      totalvzh = 0
       totalh = 0
       totalarea = 0
 
-      if (ISTEP .eq. 0) then
-        eps = 1.0
-      else
-        eps = 1/wmles_navrg
-      endif
-
+      ! Sample the solution values at h
       call sample_distance_based
-c      call sample_distance_based
-c      call sample_distance_based
-      
+
+      i_linear = 0
+
       do ielem=1, lelv
         do iface=1, 6 
 
@@ -92,11 +84,12 @@ c      call sample_distance_based
 
           if (boundaryID(iface, ielem) .eq. wallbid) then
 
+
             ! Grab index limits for traversing the face
             call facind(frangex1, frangex2, frangey1,
      $                  frangey2, frangez1, frangez2,
      $                  lx1, ly1, lz1, iface)
-            
+
             inorm = 0
 
             do ifacez=frangez1, frangez2
@@ -104,77 +97,21 @@ c      call sample_distance_based
                 do ifacex=frangex1, frangex2
 
                   inorm = inorm + 1
-                  xgll = xm1(ifacex, ifacey, ifacez, ielem)
-                  ygll = ym1(ifacex, ifacey, ifacez, ielem)
-                  zgll = zm1(ifacex, ifacey, ifacez, ielem)
-
-                  ! inward face normal
-                  normalx =  unx(inorm, 1, iface, ielem)
-                  normaly = -uny(inorm, 1, iface, ielem)
-                  normalz =  unz(inorm, 1, iface, ielem)
+                  i_linear = i_linear + 1
 
                   totalarea = totalarea + area(inorm, 1, iface, ielem)
 
-                  call sample_index_based(xh, yh, zh, 
-     $                                    vxh, vyh, vzh, th, ts,
-     $                                    ifacex, ifacey, ifacez,
-     $                                    iface, ielem)
+                  ! grab the sampling height
+                  h = sampling_h(i_linear)
 
-                  ! Vector between face node and sampling point
-                  xh = xh - xgll
-                  yh = yh - ygll
-                  zh = zh - zgll
-                  
-                  ! project onto the local face normal
-                  h = abs(xh*normalx + yh*normaly + zh*normalz)
-                  
-                  ! project sampled velocity on the face plane
-                  vhndot =
-     $              (vxh*normalx + vyh*normaly + vzh*normalz)
-     
-                  vxh = vxh - normalx*vhndot
-                  vyh = vyh - normaly*vhndot
-                  vzh = vzh - normalz*vhndot
-
-
-                  ! time-averaging the input 
-                  vh(1, ifacex, ifacey, ifacez, ielem) =
-     $               (1-eps)*vh(1, ifacex, ifacey, ifacez, ielem) +
-     $               eps*vxh
-                  vh(2, ifacex, ifacey, ifacez, ielem) =
-     $               (1-eps)*vh(2, ifacex, ifacey, ifacez, ielem) +
-     $               eps*vyh
-                  vh(3, ifacex, ifacey, ifacez, ielem) =
-     $               (1-eps)*vh(3, ifacex, ifacey, ifacez, ielem) +
-     $               eps*vzh
-                  temph(ifacex, ifacey, ifacez, ielem) =
-     $               (1-eps)*temph(ifacex, ifacey, ifacez, ielem) +
-     $               eps*th
-                  temps(ifacex, ifacey, ifacez, ielem) =
-     $               (1-eps)*temps(ifacex, ifacey, ifacez, ielem) +
-     $               eps*ts
-
-                  ! for brevity reassign back
-                  vxh = vh(1, ifacex, ifacey, ifacez, ielem)
-                  vyh = vh(2, ifacex, ifacey, ifacez, ielem)
-                  vzh = vh(3, ifacex, ifacey, ifacez, ielem)
-                  th = temph(ifacex, ifacey, ifacez, ielem)
-                  ts = temps(ifacex, ifacey, ifacez, ielem)
-
-                  ! Sum up vh for debug output
-                  totalvxh = totalvxh + vxh
-                  totalvyh = totalvyh + vyh
-                  totalvzh = totalvzh + vzh
-                  totalh = totalh + h
-
-                  call set_momentum_flux(h, ifacex, ifacey,
-     $                                     ifacez, ielem)
+                  call set_momentum_flux(h, i_linear,
+     $                                   ifacex, ifacey, ifacez,
+     $                                   ielem)
                   if (ifheat) then
                     call set_heat_flux(h, ifacex, ifacey, ifacez, ielem)
                     totalq = 
      $                totalq + heat_flux(ifacex, ifacey, ifacez,ielem)*
      $                         area(inorm, 1, iface, ielem) 
-                    totalt = totalt + th*area(inorm, 1, iface, ielem)
                     totalts = totalts + ts*area(inorm, 1, iface, ielem)
                   end if
 
@@ -188,7 +125,6 @@ c      call sample_distance_based
      $             iface, ielem)
 
                   nwallnodes = nwallnodes + 1
-
                 end do
               end do
             end do
@@ -198,14 +134,25 @@ c      call sample_distance_based
         enddo
       enddo
 
+      ! average debug stuff across processors
       totalutau = glsum(totalutau, 1)
       totalq = glsum(totalq, 1)
-      totalt = glsum(totalt, 1)
       totalts = glsum(totalts, 1)
-      totalvxh = glsum(totalvxh, 1)
-      totalvyh = glsum(totalvyh, 1)
-      totalvzh = glsum(totalvzh, 1)
-      totalh = glsum(totalh, 1)
+
+      totalvxh = glsum(vlsum(wmles_solh(1:n_boundary_points, 1),
+     $  n_boundary_points), 1)
+      totalvyh = glsum(vlsum(wmles_solh(1:n_boundary_points, 2),
+     $  n_boundary_points), 1)
+      totalvzh = glsum(vlsum(wmles_solh(1:n_boundary_points, 3),
+     $  n_boundary_points), 1)
+      totalh = glsum(vlsum(sampling_h(1:n_boundary_points),
+     $  n_boundary_points), 1)
+
+      if (ifheat) then
+        totalt = glsum(vlsum(wmles_solh(1:n_boundary_points, 4),
+     $  n_boundary_points), 1)
+      endif
+
       totalarea = glsum(totalarea, 1)
       nwallnodes = iglsum(nwallnodes, 1)
       
@@ -352,111 +299,23 @@ c      call sample_distance_based
       call mntr_tmr_add(wmles_tmr_sampling_id, 1, ltim)
       end subroutine
 !=======================================================================
-      subroutine find_sampling_points()
-      implicit none
-      include 'SIZE'
-      include 'INPUT'
-      include 'GEOM'
-      include 'WMLES'
-      ! Values of gll node coordinates
-      real xgll, ygll, zgll
-
-      ! The components of the inward normal to a wall-face + counter
-      real normalx, normaly, normalz
-      integer inorm
-
-      ! Loop ranges for traversing face nodes
-      integer frangex1, frangex2, frangey1, frangey2, frangez1, frangez2
-
-      real xh, yh, zh
-      real vxh, vyh, vzh, th, ts
-      integer ifacex, ifacey, ifacez
-      integer iface, ielem
-
-      ! Linear index
-      integer n_sampling
-
-      ! Timer function and current time place holder
-      real dnekclock, ltim
-
-      ! Start the timer 
-      ltim = dnekclock()
-
-      n_sampling = 0
-
-      do ielem=1, lelv
-        do iface=1, 6 
-
-          if (boundaryID(iface, ielem) .eq. wallbid) then
-
-            ! Grab index limits for traversing the face
-            call facind(frangex1, frangex2, frangey1,
-     $                  frangey2, frangez1, frangez2,
-     $                  lx1, ly1, lz1, iface)
-            
-            ! a linear index for the loop below
-            inorm = 0
-
-            do ifacez=frangez1, frangez2
-              do ifacey=frangey1, frangey2
-                do ifacex=frangex1, frangex2
-                  n_sampling = n_sampling + 1
-c
-                  inorm = inorm + 1
-                  xgll = xm1(ifacex, ifacey, ifacez, ielem)
-                  ygll = ym1(ifacex, ifacey, ifacez, ielem)
-                  zgll = zm1(ifacex, ifacey, ifacez, ielem)
-
-                  ! inward face normal
-                  normalx =  unx(inorm, 1, iface, ielem)
-                  normaly = -uny(inorm, 1, iface, ielem)
-                  normalz =  unz(inorm, 1, iface, ielem)
-
-                  sampling_points(n_sampling, 1) = 
-     $               xgll + normalx*sampling_h(n_sampling)
-                  sampling_points(n_sampling, 2) = 
-     $               ygll + normaly*sampling_h(n_sampling)
-                  sampling_points(n_sampling, 3) = 
-     $               zgll + normalz*sampling_h(n_sampling)
-
-                end do
-              end do
-            end do
-
-          endif
-
-        enddo
-      enddo
-
-
-      n_boundary_points = n_sampling
-
-c      write(*,*) sampling_points(:n_boundary_points, 2)
-      ! Stop the timer and add to total
-      ltim = dnekclock() - ltim
-      call mntr_tmr_add(wmles_tmr_sampling_id, 1, ltim)
-      end subroutine
-!=======================================================================
       subroutine sample_distance_based()
       implicit none
 
       include 'SIZE'
+      include 'TSTEP'
       include 'INPUT'
       include 'GEOM'
       include 'SOLN'
       include 'WMLES'
 
       ! Values of gll node coordinates
-      real xgll, ygll, zgll
 
       ! The components of the inward normal to a wall-face + counter
-      real normalx, normaly, normalz
-      integer inorm
+      integer i, j
 
-      real xh, yh, zh
-      real vxh, vyh, vzh, th, ts
-      integer ifacex, ifacey, ifacez
-      integer iface, ielem
+      ! store scalar product of velocity with normal
+      real vdotn
 
       ! working arrays for interpolation as per
       ! inter_nfld documentation
@@ -464,10 +323,19 @@ c      write(*,*) sampling_points(:n_boundary_points, 2)
       integer iwk(NMAX_BOUNDARY_POINTS, 3)
 
       ! sampled velocity and temperature fields
-      real sampled_fields(lx1, ly1, lz1, lelt, 3)
+      real sampled_fields(lx1, ly1, lz1, lelt, 4)
+
+      ! temp array to hold the sampled fields
+      real temp_solh(NMAX_BOUNDARY_POINTS, 4)
 
       ! handle variable necessary for the interpolation
       integer intp_h
+
+      ! number of fields to sample, depends on whether we have t
+      integer n_fields
+
+      ! weight for time-averaging
+      real eps
 
       ! Timer function and current time place holder
       real dnekclock, ltim
@@ -475,48 +343,60 @@ c      write(*,*) sampling_points(:n_boundary_points, 2)
       ! Start the timer 
       ltim = dnekclock()
 
-c      write(*,*) sampling_points(:n_boundary_points, 2)
+      if (ISTEP .eq. 0) then
+        eps = 1.0
+      else
+        eps = 1/wmles_navrg
+      endif
+
+      if (ifheat) then
+          n_fields = 4
+      else 
+          n_fields = 3
+      endif
 
       call copy(sampled_fields(:, :, :, :, 1), vx, lx1*ly1*lz1*nelt)
       call copy(sampled_fields(:, :, :, :, 2), vy, lx1*ly1*lz1*nelt)
       call copy(sampled_fields(:, :, :, :, 3), vz, lx1*ly1*lz1*nelt)
-c      call copy(sampled_fields(:, :, :, :, 4), t, lx1*ly1*lz1*nelt)
 
-c      write(*,*) nid, "REAL NUMBER OF POINTS", n_boundary_points
+      if (ifheat) then
+        call copy(sampled_fields(:, :, :, :, 4), t, lx1*ly1*lz1*nelt)
+      endif
 
-c      call outpost(sampled_fields(:,:,:,:,1),
-c     $             sampled_fields(:,:,:,:,2),
-c     $             sampled_fields(:,:,:,:,3),
-c     $             xm2,
-c     $             sampled_fields(:,:,:,:,1),
-c     $             'kek') 
-
-
-c          write(*,*) "Running interp_nfld"
         call interp_nfld(
-     $    solh(:n_boundary_points, 1:3), !will store the sampled points
-     $    sampled_fields,         !will sample these
-     $    3,                      !number of fields
+     $    temp_solh(:n_boundary_points, 1:n_fields), !will store the sampled points
+     $    sampled_fields(:, :, :, :, 1:n_fields),     !will sample these
+     $    n_fields,                                !number of fields
      $    sampling_points(1:n_boundary_points, 1), ! x
      $    sampling_points(1:n_boundary_points, 2), ! y
      $    sampling_points(1:n_boundary_points, 3), ! z
      $    n_boundary_points,                       ! number of points
-     $    iwk, rwk, NMAX_BOUNDARY_POINTS,      ! work array stuff
+     $    iwk, rwk, NMAX_BOUNDARY_POINTS,          ! work array stuff
      $    wmles_iffind,                            ! wether to find points
-     $    wmles_interpolation_handle)                           ! handle
+     $    wmles_interpolation_handle)              ! handle
 
-        ! Turn off flag, actually needs to run once, but whatever
+        ! Turn off the flag, actually needs to run once, but whatever
         wmles_iffind = .false.
 
-c      if (n_sampling > 0) then
-c         write(*,*) "nid", nid, "points", xsampling_points(1:3),
-c     $    ysampling_points(1:3),
-c     $    "sampled", solh(1:200, 1), solh(1:3, 2)
-c       endif
 
-c      write(*,*) "Ran interp_nfld"
+        ! project sampled velocity on the face plane
+        ! and the time-average
+        do i=1, n_boundary_points
+          vdotn = 0
+          do j=1, 3
+            vdotn = vdotn + temp_solh(i, j)*wmles_normals(i, j)
+          enddo
 
 
+          do j=1, 3
+            temp_solh(i, j) = temp_solh(i, j) - vdotn*wmles_normals(i,j)
+            wmles_solh(i, j) = (1-eps)*wmles_solh(i, j) +
+     $        eps*temp_solh(i, j)
+          enddo
+
+c          write(*,*) wmles_normals(i, 1), wmles_normals(i, 2),
+c     $      wmles_normals(i, 3), vdotn, temp_solh(i, 2)
+        enddo
 
       ! Stop the timer and add to total
       ltim = dnekclock() - ltim

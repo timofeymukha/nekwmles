@@ -225,11 +225,12 @@
       
       wmles_surface_temp = rtmp
 
-
       ! routine that sets h. should be provided by the user
-      call set_sampling_height
-      call find_sampling_points
-    
+      if (nid .eq. 0) write(*,*) "[WMLES]: Setting sampling height"
+      call user_set_sampling_height
+      if (nid .eq. 0) write(*,*)
+     $  "[WMLES]: Searching for sampling points"
+      call find_sampling_points 
       ! Initialize the sampling
       call interp_setup(wmles_interpolation_handle, 0.0, 0, nelt)
       ! Set flag for finding interpolation points to true
@@ -324,11 +325,11 @@ c
                   h(ifacex, ifacey, ifacez, ielem) = 
      $               sampling_h(i_linear)
                   svx(ifacex, ifacey, ifacez, ielem) = 
-     $               solh(i_linear, 1)
+     $               wmles_solh(i_linear, 1)
                   svy(ifacex, ifacey, ifacez, ielem) = 
-     $               solh(i_linear, 2)
+     $               wmles_solh(i_linear, 2)
                   svz(ifacex, ifacey, ifacez, ielem) = 
-     $               solh(i_linear, 3)
+     $               wmles_solh(i_linear, 3)
                   spx(ifacex, ifacey, ifacez, ielem) = 
      $               sampling_points(i_linear, 1)
                   spy(ifacex, ifacey, ifacez, ielem) = 
@@ -337,7 +338,7 @@ c
      $               sampling_points(i_linear, 3)
                   if (ifheat) then
                     svt(ifacex, ifacey, ifacez, ielem) = 
-     $                solh(i_linear, 4)
+     $                wmles_solh(i_linear, 4)
                   endif
 
                 end do
@@ -352,5 +353,110 @@ c
       call outpost(svx, svy, svz, xm2, svt, 'wmv') 
       call outpost(spx, spy, spz, xm2, xm1, 'wmp') 
 
+      end subroutine
+
+!=======================================================================
+      subroutine find_sampling_points()
+      implicit none
+      include 'SIZE'
+      include 'INPUT'
+      include 'GEOM'
+      include 'WMLES'
+      ! Values of gll node coordinates
+      real xgll, ygll, zgll
+
+      ! The components of the inward normal to a wall-face + counter
+      real normalx, normaly, normalz
+      integer inorm
+
+      ! Loop ranges for traversing face nodes
+      integer frangex1, frangex2, frangey1, frangey2, frangez1, frangez2
+
+      real xh, yh, zh
+      real vxh, vyh, vzh, th, ts
+      integer ifacex, ifacey, ifacez
+      integer iface, ielem
+
+      ! Linear index
+      integer n_sampling
+
+      ! Timer function and current time place holder
+      real dnekclock, ltim
+
+      integer iglmax, cpu_max_nbndry
+
+      ! Start the timer 
+      ltim = dnekclock()
+
+      n_sampling = 0
+
+      do ielem=1, lelv
+        do iface=1, 6 
+
+          if (boundaryID(iface, ielem) .eq. wallbid) then
+
+            ! Grab index limits for traversing the face
+            call facind(frangex1, frangex2, frangey1,
+     $                  frangey2, frangez1, frangez2,
+     $                  lx1, ly1, lz1, iface)
+
+            ! a linear index for the loop below
+            inorm = 0
+
+            do ifacez=frangez1, frangez2
+              do ifacey=frangey1, frangey2
+                do ifacex=frangex1, frangex2
+                  n_sampling = n_sampling + 1
+
+                  if (n_sampling .gt. NMAX_BOUNDARY_POINTS) then
+                      write(*,*) "ERROR: Increase N_BOUNDARY_PONTS!"
+                  endif
+c
+                  inorm = inorm + 1
+                  xgll = xm1(ifacex, ifacey, ifacez, ielem)
+                  ygll = ym1(ifacex, ifacey, ifacez, ielem)
+                  zgll = zm1(ifacex, ifacey, ifacez, ielem)
+
+                  ! inward face normal
+                  normalx =  unx(inorm, 1, iface, ielem)
+                  normaly = -uny(inorm, 1, iface, ielem)
+                  normalz =  unz(inorm, 1, iface, ielem)
+
+                  ! store the normals
+                  wmles_normals(n_sampling, 1) = normalx
+                  wmles_normals(n_sampling, 2) = normaly
+                  wmles_normals(n_sampling, 3) = normalz
+
+                  sampling_points(n_sampling, 1) = 
+     $               xgll + normalx*sampling_h(n_sampling)
+                  sampling_points(n_sampling, 2) = 
+     $               ygll + normaly*sampling_h(n_sampling)
+                  sampling_points(n_sampling, 3) = 
+     $               zgll + normalz*sampling_h(n_sampling)
+
+                end do
+              end do
+            end do
+
+          endif
+
+        enddo
+      enddo
+
+
+      n_boundary_points = n_sampling
+      cpu_max_nbndry = iglmax(n_boundary_points, 1)
+
+      if (nid .eq. 0) then
+        write(*,*) "[WMLES] NMAX_BOUNDARY_POINTS must be >= ", 
+     $    cpu_max_nbndry
+        write(*,*) "[WMLES] NMAX_BOUNDARY_POINTS is", 
+     $    NMAX_BOUNDARY_POINTS 
+      endif
+
+c      write(*,*) sampling_points(:n_boundary_points, 2)
+      ! Stop the timer and add to total
+      ltim = dnekclock() - ltim
+      call mntr_tmr_add(wmles_tmr_sampling_id, 1, ltim)
       end subroutine
 

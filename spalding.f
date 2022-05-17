@@ -1,5 +1,5 @@
 !> @brief Spaldings law in implicit form
-      real function set_momentum_flux(h, ix, iy, iz, ie)
+      real function set_momentum_flux(h, i, ix, iy, iz, ie)
       implicit none
 
       include 'SIZE'
@@ -7,6 +7,9 @@
 
       ! sampling height
       real h 
+
+      ! linear index for the sampled solution values
+      integer i
 
       ! the indices of the gll point
       integer ix, iy, iz, ie
@@ -25,9 +28,9 @@
 !-----------------------------------------------------------------------
 
       ! Magnitude of the sampled velocity
-      magvh = vh(1, ix, iy, iz, ie)**2 +
-     $        vh(2, ix, iy, iz, ie)**2 +
-     $        vh(3, ix, iy, iz, ie)**2
+      magvh = solh(i, 1)**2 +
+     $        solh(i, 2)**2 +
+     $        solh(i, 3)**2
       magvh = sqrt(magvh)
      
       ! take the stress mag at the previous step as a guess
@@ -43,9 +46,9 @@
 
       ! Assign proportional to the velocity magnitudes at
       ! the sampling point
-      tau(1, ix, iy, iz, ie) = -utau**2*vh(1, ix, iy, iz, ie)/magvh
-      tau(2, ix, iy, iz, ie) = -utau**2*vh(2, ix, iy, iz, ie)/magvh
-      tau(3, ix, iy, iz, ie) = -utau**2*vh(3, ix, iy, iz, ie)/magvh
+      tau(1, ix, iy, iz, ie) = -utau**2*solh(i, 1)/magvh
+      tau(2, ix, iy, iz, ie) = -utau**2*solh(i, 2)/magvh
+      tau(3, ix, iy, iz, ie) = -utau**2*solh(i, 3)/magvh
 
       end
 

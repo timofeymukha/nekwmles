@@ -28,9 +28,9 @@
 !-----------------------------------------------------------------------
 
       ! Magnitude of the sampled velocity
-      magvh = solh(i, 1)**2 +
-     $        solh(i, 2)**2 +
-     $        solh(i, 3)**2
+      magvh = wmles_solh(i, 1)**2 +
+     $        wmles_solh(i, 2)**2 +
+     $        wmles_solh(i, 3)**2
       magvh = sqrt(magvh)
      
       ! take the stress mag at the previous step as a guess
@@ -46,9 +46,9 @@
 
       ! Assign proportional to the velocity magnitudes at
       ! the sampling point
-      tau(1, ix, iy, iz, ie) = -utau**2*solh(i, 1)/magvh
-      tau(2, ix, iy, iz, ie) = -utau**2*solh(i, 2)/magvh
-      tau(3, ix, iy, iz, ie) = -utau**2*solh(i, 3)/magvh
+      tau(1, ix, iy, iz, ie) = -utau**2*wmles_solh(i, 1)/magvh
+      tau(2, ix, iy, iz, ie) = -utau**2*wmles_solh(i, 2)/magvh
+      tau(3, ix, iy, iz, ie) = -utau**2*wmles_solh(i, 3)/magvh
 
       end
 

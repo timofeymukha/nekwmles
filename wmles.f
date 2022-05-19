@@ -86,9 +86,6 @@
      $     'Boundary ID of the wall faces', rpar_int, 1, 0.0, .false.,
      $     ' ')
  
-      call rprm_rp_reg(wmles_samplingidx_id,wmles_sec_id,'SAMPLINGIDX',
-     $   'Wall-normal sampling point index',rpar_int,2,0.0,.false.,' ')
-
       call rprm_rp_reg(wmles_ifviscosity_id,wmles_sec_id,'IFVISCOSITY',
      $   'Whether tau_w is imposed via wall viscosity',
      $    rpar_log, 0, 0.0, .true.,' ')
@@ -146,8 +143,6 @@
       ! timing
       ltim = dnekclock()
 
-      vh = 0
-      
       ! get the guess for tau and assign
       call rprm_rp_get(itmp, rtmp, ltmp, ctmp, wmles_guess_id,rpar_real)
       
@@ -161,57 +156,26 @@
         call exitt
       end if
       
-      do ielem = 1, lelv
-        do k = 1, lz1
-          do j = 1, ly1
-            do i = 1, lx1
-              ! Assign the whole magnitude to the x component.
-              ! Does not matter since the magnitude of tau will be
-              ! used for the guess.
-              tau(1, i, j, k, ielem) = rtmp
-              tau(2, i, j, k, ielem) = 0
-              tau(3, i, j, k, ielem) = 0
-            end do
-          end do
-        end do
-      end do
+      call cfill(wmles_tau(:, 1), rtmp, NMAX_BOUNDARY_POINTS)
+      call cfill(wmles_tau(:, 2), 0.0, NMAX_BOUNDARY_POINTS)
+      call cfill(wmles_tau(:, 3), 0.0, NMAX_BOUNDARY_POINTS)
       
-      ! get and assign the wall-normal index of the sampling point
-      call rprm_rp_get(itmp, rtmp, ltmp, ctmp, wmles_samplingidx_id,
-     $                 rpar_int)
-      samplingidx = itmp
-
       ! get and assign the id of the wall boundary
       call rprm_rp_get(itmp, rtmp, ltmp, ctmp, wmles_bid_id,
      $                 rpar_int)
-      wallbid = itmp
+      wmles_wallbid = itmp
       
-      ! Check that the sampling index is in [1; lx1-1]
-      if (itmp .lt. 1) then
-        if (nid .eq. 0) then 
-          write(*, *)
-     $      "[WMLES] FATAL ERROR: The SAMPLINGIDX must be >= 1"
-        end if
-        call exitt
-      elseif (itmp .ge. lx1) then
-        if (nid .eq. 0) then 
-          write(*, *)
-     $     "[WMLES] FATAL ERROR: The SAMPLINGIDX must be < lx1"
-        end if
-        call exitt
-      end if
-
       ! get and assign the wall viscosity flag
       call rprm_rp_get(itmp, rtmp, ltmp, ctmp, wmles_ifviscosity_id,
      $                 rpar_log)
       
-      ifviscosity = ltmp
+      wmles_ifviscosity = ltmp
 
       ! get and assign the h is index flag
       call rprm_rp_get(itmp, rtmp, ltmp, ctmp, wmles_h_is_index_id,
      $                 rpar_log)
       
-      ifhisindex = ltmp
+      wmles_ifhisindex = ltmp
 
       ! get and assign the number of time-steps for input averaging
       call rprm_rp_get(itmp, rtmp, ltmp, ctmp, wmles_navrg_id,
@@ -225,11 +189,16 @@
       
       wmles_surface_temp = rtmp
 
-      ! routine that sets h. should be provided by the user
+      ! routine that sets h, should be provided by the user
       if (nid .eq. 0) write(*,*) "[WMLES]: Setting sampling height"
       call user_set_sampling_height
+      
+      ! if h is input as an index, compute h as distance
+      if (wmles_ifhisindex) call wmles_set_h_from_indices
+
       if (nid .eq. 0) write(*,*)
      $  "[WMLES]: Searching for sampling points"
+
       call find_sampling_points 
       ! Initialize the sampling
       call interp_setup(wmles_interpolation_handle, 0.0, 0, nelt)
@@ -239,7 +208,7 @@
 
 
       ! everything is initialised
-      wmles_ifinit=.true.
+      wmles_ifinit = .true.
 
     
       ! timing
@@ -310,7 +279,7 @@
       do ielem=1, lelv
         do iface=1, 6 
 
-          if (boundaryID(iface, ielem) .eq. wallbid) then
+          if (boundaryID(iface, ielem) .eq. wmles_wallbid) then
 
             ! Grab index limits for traversing the face
             call facind(frangex1, frangex2, frangey1,
@@ -323,7 +292,7 @@
                   i_linear = i_linear + 1
 c
                   h(ifacex, ifacey, ifacez, ielem) = 
-     $               sampling_h(i_linear)
+     $               wmles_sampling_h(i_linear)
                   svx(ifacex, ifacey, ifacez, ielem) = 
      $               wmles_solh(i_linear, 1)
                   svy(ifacex, ifacey, ifacez, ielem) = 
@@ -331,11 +300,11 @@ c
                   svz(ifacex, ifacey, ifacez, ielem) = 
      $               wmles_solh(i_linear, 3)
                   spx(ifacex, ifacey, ifacez, ielem) = 
-     $               sampling_points(i_linear, 1)
+     $               wmles_sampling_points(i_linear, 1)
                   spy(ifacex, ifacey, ifacez, ielem) = 
-     $               sampling_points(i_linear, 2)
+     $               wmles_sampling_points(i_linear, 2)
                   spz(ifacex, ifacey, ifacez, ielem) = 
-     $               sampling_points(i_linear, 3)
+     $               wmles_sampling_points(i_linear, 3)
                   if (ifheat) then
                     svt(ifacex, ifacey, ifacez, ielem) = 
      $                wmles_solh(i_linear, 4)
@@ -352,7 +321,7 @@ c
       call outpost(h, h, h, xm2, h, 'wmh') 
       call outpost(svx, svy, svz, xm2, svt, 'wmv') 
       call outpost(spx, spy, spz, xm2, xm1, 'wmp') 
-
+      
       end subroutine
 
 !=======================================================================
@@ -393,7 +362,7 @@ c
       do ielem=1, lelv
         do iface=1, 6 
 
-          if (boundaryID(iface, ielem) .eq. wallbid) then
+          if (boundaryID(iface, ielem) .eq. wmles_wallbid) then
 
             ! Grab index limits for traversing the face
             call facind(frangex1, frangex2, frangey1,
@@ -411,7 +380,7 @@ c
                   if (n_sampling .gt. NMAX_BOUNDARY_POINTS) then
                       write(*,*) "ERROR: Increase N_BOUNDARY_PONTS!"
                   endif
-c
+
                   inorm = inorm + 1
                   xgll = xm1(ifacex, ifacey, ifacez, ielem)
                   ygll = ym1(ifacex, ifacey, ifacez, ielem)
@@ -427,12 +396,25 @@ c
                   wmles_normals(n_sampling, 2) = normaly
                   wmles_normals(n_sampling, 3) = normalz
 
-                  sampling_points(n_sampling, 1) = 
-     $               xgll + normalx*sampling_h(n_sampling)
-                  sampling_points(n_sampling, 2) = 
-     $               ygll + normaly*sampling_h(n_sampling)
-                  sampling_points(n_sampling, 3) = 
-     $               zgll + normalz*sampling_h(n_sampling)
+                  ! store the area
+                  wmles_areas(n_sampling) = area(inorm, 1, iface, ielem) 
+
+                  ! store the wall indices
+                  wmles_indices(n_sampling, 1) = ifacex
+                  wmles_indices(n_sampling, 2) = ifacey
+                  wmles_indices(n_sampling, 3) = ifacez
+                  wmles_indices(n_sampling, 4) = ielem
+                  
+                  ! store the inverse index
+                  wmles_inv_indices(ifacex, ifacey, ifacez, ielem) = 
+     $              n_sampling
+
+                  wmles_sampling_points(n_sampling, 1) = 
+     $               xgll + normalx*wmles_sampling_h(n_sampling)
+                  wmles_sampling_points(n_sampling, 2) = 
+     $               ygll + normaly*wmles_sampling_h(n_sampling)
+                  wmles_sampling_points(n_sampling, 3) = 
+     $               zgll + normalz*wmles_sampling_h(n_sampling)
 
                 end do
               end do
@@ -444,8 +426,8 @@ c
       enddo
 
 
-      n_boundary_points = n_sampling
-      cpu_max_nbndry = iglmax(n_boundary_points, 1)
+      wmles_nbpoints = n_sampling
+      cpu_max_nbndry = iglmax(wmles_nbpoints, 1)
 
       if (nid .eq. 0) then
         write(*,*) "[WMLES] NMAX_BOUNDARY_POINTS must be >= ", 
@@ -454,7 +436,7 @@ c
      $    NMAX_BOUNDARY_POINTS 
       endif
 
-c      write(*,*) sampling_points(:n_boundary_points, 2)
+c      write(*,*) wmles_sampling_points(:wmles_nbpoints, 2)
       ! Stop the timer and add to total
       ltim = dnekclock() - ltim
       call mntr_tmr_add(wmles_tmr_sampling_id, 1, ltim)

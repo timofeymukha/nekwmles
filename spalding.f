@@ -1,5 +1,5 @@
 !> @brief Spaldings law in implicit form
-      real function set_momentum_flux(h, i, ix, iy, iz, ie)
+      real function wmles_set_momentum_flux(i)
       implicit none
 
       include 'SIZE'
@@ -18,7 +18,7 @@
       real newton
 
       ! Laws of the wall
-      external spalding_value, spalding_derivative
+      external wmles_spalding_value, wmles_spalding_derivative
 
       ! sampled velocity
       real magvh
@@ -27,28 +27,34 @@
       real guess, utau
 !-----------------------------------------------------------------------
 
+      h = wmles_sampling_h(i)
+
       ! Magnitude of the sampled velocity
       magvh = wmles_solh(i, 1)**2 +
      $        wmles_solh(i, 2)**2 +
      $        wmles_solh(i, 3)**2
       magvh = sqrt(magvh)
+      
+      ix = wmles_indices(i, 1)
+      iy = wmles_indices(i, 2)
+      iz = wmles_indices(i, 3)
+      ie = wmles_indices(i, 4)
      
       ! take the stress mag at the previous step as a guess
       ! inital value at simulation start is the GUESS param
-      guess = tau(1, ix, iy, iz, ie)**2 +
-     $        tau(2, ix, iy, iz, ie)**2 +
-     $        tau(3, ix, iy, iz, ie)**2
+      guess = 
+     $  wmles_tau(i, 1)**2 + wmles_tau(i, 2)**2 + wmles_tau(i, 3)**2
 
       ! Double sqrt to get utau.
       guess = sqrt(sqrt(guess))
-      utau = newton(spalding_value, spalding_derivative,
+      utau = newton(wmles_spalding_value, wmles_spalding_derivative,
      $              magvh, h, guess, 1e-4, 50)
 
       ! Assign proportional to the velocity magnitudes at
       ! the sampling point
-      tau(1, ix, iy, iz, ie) = -utau**2*wmles_solh(i, 1)/magvh
-      tau(2, ix, iy, iz, ie) = -utau**2*wmles_solh(i, 2)/magvh
-      tau(3, ix, iy, iz, ie) = -utau**2*wmles_solh(i, 3)/magvh
+      wmles_tau(i, 1) = -utau**2*wmles_solh(i, 1)/magvh
+      wmles_tau(i, 2) = -utau**2*wmles_solh(i, 2)/magvh
+      wmles_tau(i, 3) = -utau**2*wmles_solh(i, 3)/magvh
 
       end
 
@@ -58,7 +64,7 @@
 !! @param[in]   u                 velocity magnitude
 !! @param[in]   y                 wall-normal distance
 !! @param[in]   utau              friction velocity
-      real function spalding_value(u, y, utau)
+      real function wmles_spalding_value(u, y, utau)
       implicit none
       include 'SIZE'
       include 'FRAMELP'
@@ -87,7 +93,7 @@
       uplus = u/utau
       yplus = y*utau/param(2)
 
-      spalding_value = 
+      wmles_spalding_value = 
      $  (uplus + exp(-kappa*B)*(exp(kappa*uplus) - 1.0 -
      $   kappa*uplus - 0.5*(kappa*uPlus)**2 -
      $   1./6*(kappa*uPlus)**3) -  yplus)
@@ -98,7 +104,7 @@
 !! @param[in]   u                 velocity magnitude
 !! @param[in]   y                 wall-normal distance
 !! @param[in]   utau              friction velocity
-      real function spalding_derivative(u, y, utau)
+      real function wmles_spalding_derivative(u, y, utau)
       implicit none
 
       include 'SIZE'
@@ -127,7 +133,7 @@
 
       uplus = u/utau
 
-      spalding_derivative = 
+      wmles_spalding_derivative = 
      $  (-y/param(2) - u/utau**2 - kappa*uplus/utau*exp(-kappa*B) *
      $  (exp(kappa*uplus) - 1 - kappa*uplus - 0.5*(kappa*uPlus)**2))
       end

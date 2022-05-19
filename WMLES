@@ -26,8 +26,6 @@ c     inital guess for the wall-shear stress
       integer wmles_guess_id
 c     the boundary id identifying walls on which modelling is applied 
       integer wmles_bid_id
-c     wall-normal index of the sampling point
-      integer wmles_samplingidx_id
 c     wether to use wall viscosity or a traction boundary
       integer wmles_ifviscosity_id
 c     number of iterations defining the time-scale for averaging
@@ -43,44 +41,41 @@ c     total
 c     sampling
       integer wmles_tmr_sampling_id
       
-c     The array holding the wall shear stress components.
-c     The size is equal to the number of nodes in the domain x3.
-c     This is a waste since we actually only need the boundary nodes
-c     but it does make indexing much easier, so we keep it this way
-c     for now.
-      real tau(3, lx1, ly1, lz1, lelv)
-c     Same for the wall heat flux
-      real heat_flux(lx1, ly1, lz1, lelv)
+      
+c     wall shear stress       
+      real wmles_tau(NMAX_BOUNDARY_POINTS, 3)
+c     wall heat flux      
+      real wmles_q(NMAX_BOUNDARY_POINTS)
 
-c     sampled velocity
-      real vh(3, lx1, ly1, lz1, lelv)
-      real wmles_solh(NMAX_BOUNDARY_POINTS, 4)
-c     sampled temperature
-      real temph(lx1, ly1, lz1, lelv)
-c     surface temperature
-      real temps(lx1, ly1, lz1, lelv)
+c     sampled solution
+      real wmles_solh(NMAX_BOUNDARY_POINTS, 5)
 c     sampling height
-      real sampling_h(NMAX_BOUNDARY_POINTS)
+      real wmles_sampling_h(NMAX_BOUNDARY_POINTS)
 c     sampling points
-      real sampling_points(NMAX_BOUNDARY_POINTS, 3)
-c     normals
+      real wmles_sampling_points(NMAX_BOUNDARY_POINTS, 3)
+c     normals to the wall
       real wmles_normals(NMAX_BOUNDARY_POINTS, 3)
+c     areas of the wall
+      real wmles_areas(NMAX_BOUNDARY_POINTS)
+
+c     holds the ix iy iz ie for the linear index into the wmles arrays
+      integer wmles_indices(NMAX_BOUNDARY_POINTS, 4)
+c     holds the linear inedx into the wmles arrays for each ix iy iz ie
+      integer wmles_inv_indices(lx1, ly1, lz1, lelv)
 
 c     number of iterations defining the time-scale for averaging
       real wmles_navrg
 c     surface temperature
       real wmles_surface_temp
 
-c     The off-wall index of the sampling point
-      integer samplingidx
 c     The boundary id for the walls
-      integer wallbid
+      integer wmles_wallbid
 c     Whether to use viscosity at the wall to enforce tau
-      logical ifviscosity
+      logical wmles_ifviscosity
 c     Whether h is an integer index or a distance
-      logical ifhisindex
+      logical wmles_ifhisindex
 c     Actual number of gll nodes for boundary wallbid
-      integer n_boundary_points
+      integer wmles_nbpoints
 c     Handle for interpolation
       integer wmles_interpolation_handle
 c     Flag for searching points for interpolation
@@ -89,17 +84,16 @@ c     Flag for searching points for interpolation
 c     Common blocks split by variable type
       common /wmlesi/ wmles_sec_id, wmles_logkappa_id, wmles_logb_id,
      $                wmles_z0_id, wmles_z1_id, wmles_guess_id,
-     $                wmles_samplingidx_id,
      $                wmles_bid_id, wmles_ifviscosity_id,
      $                wmles_navrg_id, wmles_surface_temp_id,
      $                wmles_tmr_tot_id, wmles_tmr_sampling_id,
-     $                wmles_h_is_index_id,
-     $                samplingidx, wallbid, n_boundary_points,
-     $                wmles_interpolation_handle
+     $                wmles_h_is_index_id, wmles_wallbid,
+     $                wmles_nbpoints,
+     $                wmles_interpolation_handle, wmles_indices
 
-      common /wmlesl/ wmles_ifinit, ifviscosity, ifhisindex,
+      common /wmlesl/ wmles_ifinit, wmles_ifviscosity, wmles_ifhisindex,
      $                wmles_iffind
 
-      common /wmlesr/ tau, wmles_navrg, vh, heat_flux, temph, temps,
-     $ wmles_surface_temp, sampling_h, sampling_points, wmles_solh,
-     $ wmles_normals
+      common /wmlesr/ wmles_navrg, wmles_surface_temp,
+     $ wmles_sampling_h, wmles_sampling_points,
+     $ wmles_solh, wmles_normals, wmles_tau, wmles_q, wmles_areas

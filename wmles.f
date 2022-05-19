@@ -190,14 +190,14 @@
       wmles_surface_temp = rtmp
 
       ! routine that sets h, should be provided by the user
-      if (nid .eq. 0) write(*,*) "[WMLES]: Setting sampling height"
+      if (nid .eq. 0) write(*,*) "[WMLES] Setting sampling height"
       call user_set_sampling_height
       
       ! if h is input as an index, compute h as distance
       if (wmles_ifhisindex) call wmles_set_h_from_indices
 
       if (nid .eq. 0) write(*,*)
-     $  "[WMLES]: Searching for sampling points"
+     $  "[WMLES] Searching for sampling points"
 
       call find_sampling_points 
       ! Initialize the sampling

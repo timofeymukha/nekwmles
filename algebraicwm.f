@@ -50,10 +50,12 @@
       include 'WMLES'
       
       ! alias for wmles_nbpoints to shorten stuff
-      integer nbp
+      integer nbp, totalnbp
 
       ! inner product and sum-reduction
       real glsc2, glsum, vlsum
+
+      integer iglsum
 
       ! just a work array
       real total(10)
@@ -63,6 +65,8 @@
       nbp = wmles_nbpoints
 
       totalarea = glsum(vlsum(wmles_areas(1:nbp), nbp), 1)
+      totalnbp = iglsum(nbp, 1)
+
       total(1) = glsc2(wmles_solh(:, 1), wmles_areas, nbp)
       total(2) = glsc2(wmles_solh(:, 2), wmles_areas, nbp)
       total(3) = glsc2(wmles_solh(:, 3), wmles_areas, nbp)
@@ -74,12 +78,14 @@
       total(6) = glsc2(wmles_tau(:, 1), wmles_areas, nbp)
       total(7) = glsc2(wmles_tau(:, 2), wmles_areas, nbp)
       total(8) = glsc2(wmles_tau(:, 3), wmles_areas, nbp)
+      total(10) = glsum(vlsum(wmles_sampling_h(1:nbp), nbp), 1)
 
       utau = sqrt(sqrt(total(6)**2 + total(7)**2 + total(8)**2))
 
       if (nid .eq. 0) then
         write(*,*) "[WMLES] average tau =", total(6)/totalarea,
      $    total(7)/totalarea, total(8)/totalarea, utau/param(2)
+        write(*,*) "[WMLES] average h =", total(10)/totalnbp
         write(*,*) "[WMLES] average v =", total(1)/totalarea,
      $    total(2)/totalarea, total(3)/totalarea
         if (ifheat) then
@@ -90,31 +96,6 @@
       
       endif
 
-c      if (ifheat) then
-c        totalt = glsum(vlsum(wmles_solh(1:wmles_nbpoints, 4),
-c     $  wmles_nbpoints), 1)
-c        totalts = glsum(vlsum(wmles_solh(1:wmles_nbpoints, 5),
-c     $  wmles_nbpoints), 1)
-c      endif
-
-c     totalarea = glsum(totalarea, 1)
-c      nwallnodes = iglsum(nwallnodes, 1)
-      
-      if (nid .eq. 0) then
-c        write(*,*) "        [WMLES] Average predicted u_tau = ",
-c     $             sqrt(total)
-c        write(*,*) "        [WMLES] Average sampled velocity = ",
-c     $             totalvxh/nwallnodes, totalvyh/nwallnodes,
-c     $             totalvzh/nwallnodes, totalh/nwallnodes
-c        if (ifheat) then
-c          write(*,*) "        [WMLES] Average predicted q = ",
-c     $               totalq/totalarea
-c          write(*,*) "        [WMLES] Average sampled t = ",
-c     $               totalt/totalarea
-c          write(*,*) "        [WMLES] Surface temprature = ",
-c     $               wmles_surface_temp, totalts/totalarea
-c        endif
-      end if
       end subroutine
 !=======================================================================
       subroutine wmles_set_h_from_indices()

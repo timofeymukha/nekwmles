@@ -80,7 +80,9 @@
       total(8) = glsc2(wmles_tau(:, 3), wmles_areas, nbp)
       total(10) = glsum(vlsum(wmles_sampling_h(1:nbp), nbp), 1)
 
-      utau = sqrt(sqrt(total(6)**2 + total(7)**2 + total(8)**2))
+      utau = sqrt(sqrt((total(6)/totalarea)**2 +
+     $                 (total(7)/totalarea)**2 +
+     $                 (total(8)/totalarea)**2))
 
       if (nid .eq. 0) then
         write(*,*) "[WMLES] average tau =", total(6)/totalarea,

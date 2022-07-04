@@ -3,7 +3,7 @@
 !! @param[in]   y              wall-normal distance
 !! @param[in]   utau           initial guess for the friction velocity
 !! @param[in]   tol            error tolerance
-!! @param[in]   maxitter       max number of iteratios
+!! @param[in]   maxitter       max number of iterations
       real function newton(f, d, u, y, utau, tol, maxiter)
 
       implicit none

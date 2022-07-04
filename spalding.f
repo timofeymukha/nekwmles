@@ -1,5 +1,5 @@
 !> @brief Spaldings law in implicit form
-      real function wmles_set_momentum_flux(i)
+      subroutine wmles_set_momentum_flux(i)
       implicit none
 
       include 'SIZE'

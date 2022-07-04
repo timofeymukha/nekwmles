@@ -34,6 +34,8 @@ c     constant surface temperature
       integer wmles_surface_temp_id
 c     whether h is index or distance
       integer wmles_h_is_index_id
+c     reference temperature for abl cases
+      integer wmles_theta0_id
       
 c     Timers
 c     total
@@ -60,13 +62,15 @@ c     areas of the wall
 
 c     holds the ix iy iz ie for the linear index into the wmles arrays
       integer wmles_indices(NMAX_BOUNDARY_POINTS, 4)
-c     holds the linear inedx into the wmles arrays for each ix iy iz ie
+c     holds the linear index into the wmles arrays for each ix iy iz ie
       integer wmles_inv_indices(lx1, ly1, lz1, lelv)
 
 c     number of iterations defining the time-scale for averaging
       real wmles_navrg
 c     surface temperature
       real wmles_surface_temp
+c     reference temperature for abls cases
+      real wmles_theta0
 
 c     The boundary id for the walls
       integer wmles_wallbid
@@ -89,11 +93,13 @@ c     Common blocks split by variable type
      $                wmles_tmr_tot_id, wmles_tmr_sampling_id,
      $                wmles_h_is_index_id, wmles_wallbid,
      $                wmles_nbpoints,
-     $                wmles_interpolation_handle, wmles_indices
+     $                wmles_interpolation_handle, wmles_indices,
+     $                wmles_inv_indices, wmles_theta0_id
 
       common /wmlesl/ wmles_ifinit, wmles_ifviscosity, wmles_ifhisindex,
      $                wmles_iffind
 
       common /wmlesr/ wmles_navrg, wmles_surface_temp,
      $ wmles_sampling_h, wmles_sampling_points,
-     $ wmles_solh, wmles_normals, wmles_tau, wmles_q, wmles_areas
+     $ wmles_solh, wmles_normals, wmles_tau, wmles_q, wmles_areas,
+     $ wmles_theta0

@@ -86,7 +86,7 @@
 
       if (nid .eq. 0) then
         write(*,*) "[WMLES] average tau =", total(6)/totalarea,
-     $    total(7)/totalarea, total(8)/totalarea, utau/param(2)
+     $    total(7)/totalarea, total(8)/totalarea, int(utau/param(2))
         write(*,*) "[WMLES] average h =", total(10)/totalnbp
         write(*,*) "[WMLES] average v =", total(1)/totalarea,
      $    total(2)/totalarea, total(3)/totalarea
@@ -138,14 +138,22 @@
               do ifacey=frangey1, frangey2
                 do ifacex=frangex1, frangex2
                   i_linear = i_linear + 1
+
+                  if (i_linear .gt. NMAX_BOUNDARY_POINTS) then
+                      write(*,*) "ERROR: Increase N_BOUNDARY_PONTS!",
+     $                  nid, i_linear                 
+                      call exitt0
+                  endif
                   
                   ! round the input h to integer
                   hind = int(wmles_sampling_h(i_linear))
-                  
+
                   if (hind .lt. 1) then
                     write(*,*) "[WMLES] h < 1!"
+                    call exitt0
                   else if (hind .gt. lx1-1) then
                     write(*,*) "[WMLES] h > lx1-1 "
+                    call exitt0
                   endif
 
                   call wmles_distance_from_index(h, hind,

@@ -31,19 +31,22 @@
       call rprm_rp_get(itmp,logb,ltmp,ctmp,wmles_logb_id,rpar_real)
       call rprm_rp_get(itmp,z1,ltmp,ctmp,wmles_z1_id,rpar_real)
 
+      h = wmles_sampling_h(i)
+
       ! Get utau (should be previously computed by set_momentum_flux)
-      utau = wmles_tau(i, 1, ix, iy, iz, ie)**2 +
-     $       wmles_tau(2, ix, iy, iz, ie)**2 +
-     $       wmles_tau(3, ix, iy, iz, ie)**2
+      utau = wmles_tau(i, 1)**2 +
+     $       wmles_tau(i, 2)**2 +
+     $       wmles_tau(i, 3)**2
       utau = sqrt(sqrt(utau))
      
       th = wmles_solh(i, 4)
       
-      if (ifviscosity) then
+      if (wmles_ifviscosity) then
         ts = wmles_solh(i, 5)
       else
         ts = wmles_surface_temp
       endif
+
 
       wmles_q(i) = kappa*utau*(ts - th)/log(h/z1)
 

@@ -96,10 +96,12 @@
       call rprm_rp_reg(wmles_surface_temp_id,wmles_sec_id,'TSURFACE',
      $   'Surface temperature',
      $    rpar_real, 0, 273.0, .false.,' ')
-
       call rprm_rp_reg(wmles_h_is_index_id,wmles_sec_id,'IFHISINDEX',
      $   'Whether h holds consecutive index or distance',
      $    rpar_log, 0, 0.0, .true.,' ')
+      call rprm_rp_reg(wmles_theta0_id,wmles_sec_id,'THETA0',
+     $   'Reference temperature',
+     $    rpar_real, 0, 0.0, .false.,' ')
 
        ! set initialisation flag
        wmles_ifinit=.false.
@@ -189,6 +191,12 @@
       
       wmles_surface_temp = rtmp
 
+      ! get and assign reference temperature
+      call rprm_rp_get(itmp, rtmp, ltmp, ctmp, wmles_theta0_id,
+     $                 rpar_real)
+      
+      wmles_theta0 = rtmp
+
       ! routine that sets h, should be provided by the user
       if (nid .eq. 0) write(*,*) "[WMLES] Setting sampling height"
       call user_set_sampling_height
@@ -206,11 +214,9 @@
       ! Used by the built-ininterpolation routine
       wmles_iffind = .true.
 
-
       ! everything is initialised
       wmles_ifinit = .true.
 
-    
       ! timing
       ltim = dnekclock() - ltim
       call mntr_tmr_add(wmles_tmr_tot_id, 1, ltim)
@@ -359,6 +365,8 @@ c
 
       n_sampling = 0
 
+      call izero(wmles_inv_indices, lx1*ly1*lz1*nelt)
+
       do ielem=1, lelv
         do iface=1, 6 
 
@@ -408,6 +416,7 @@ c
                   ! store the inverse index
                   wmles_inv_indices(ifacex, ifacey, ifacez, ielem) = 
      $              n_sampling
+
 
                   wmles_sampling_points(n_sampling, 1) = 
      $               xgll + normalx*wmles_sampling_h(n_sampling)

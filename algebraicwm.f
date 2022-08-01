@@ -56,9 +56,12 @@
       real glsc2, glsum, vlsum
 
       integer iglsum
+      
+      ! max and min
+      real glmax, glmin
 
       ! just a work array
-      real total(10)
+      real total(13)
 
       real totalarea, utau
       
@@ -79,6 +82,9 @@
       total(7) = glsc2(wmles_tau(:, 2), wmles_areas, nbp)
       total(8) = glsc2(wmles_tau(:, 3), wmles_areas, nbp)
       total(10) = glsum(vlsum(wmles_sampling_h(1:nbp), nbp), 1)
+      total(11) = glsc2(wmles_lobukhov, wmles_areas, nbp)
+      total(12) = glmin(wmles_lobukhov, nbp)
+      total(13) = glmax(wmles_lobukhov, nbp)
 
       utau = sqrt(sqrt((total(6)/totalarea)**2 +
      $                 (total(7)/totalarea)**2 +
@@ -86,7 +92,7 @@
 
       if (nid .eq. 0) then
         write(*,*) "[WMLES] average tau =", total(6)/totalarea,
-     $    total(7)/totalarea, total(8)/totalarea, int(utau/param(2))
+     $    total(7)/totalarea, total(8)/totalarea, utau
         write(*,*) "[WMLES] average h =", total(10)/totalnbp
         write(*,*) "[WMLES] average v =", total(1)/totalarea,
      $    total(2)/totalarea, total(3)/totalarea
@@ -94,6 +100,8 @@
         write(*,*) "[WMLES] average q =", total(9)/totalarea
         write(*,*) "[WMLES] average t, ts =", total(4)/totalarea,
      $    total(5)/totalarea
+        write(*,*) "[WMLES] average L obukhov =", total(11)/totalarea,
+     $             total(12), total(13)
         endif
       
       endif
@@ -283,6 +291,9 @@
 
       ! weight for time-averaging
       real eps
+      
+      ! area-weighted averaging 
+      real glsc2, glsum, vlsum, totalarea
 
       ! Timer function and current time place holder
       real dnekclock, ltim
@@ -355,6 +366,21 @@
           endif  
         enddo
       
+      totalarea = glsum(vlsum(wmles_areas(1:wmles_nbpoints),
+     $                  wmles_nbpoints), 1)
+
+      ! compute averages
+      wmles_uh_average(1) = glsc2(wmles_solh(:, 1), wmles_areas,
+     $                            wmles_nbpoints)/totalarea
+      wmles_uh_average(2) = glsc2(wmles_solh(:, 2), wmles_areas,
+     $                            wmles_nbpoints)/totalarea
+      wmles_uh_average(3) = glsc2(wmles_solh(:, 3), wmles_areas,
+     $                            wmles_nbpoints)/totalarea
+      wmles_th_average = glsc2(wmles_solh(:, 4), wmles_areas,
+     $                            wmles_nbpoints)/totalarea
+      wmles_ts_average = glsc2(wmles_solh(:, 5), wmles_areas,
+     $                            wmles_nbpoints)/totalarea
+      
       ! Stop the timer and add to total
       ltim = dnekclock() - ltim
       call mntr_tmr_add(wmles_tmr_sampling_id, 1, ltim)
@@ -380,6 +406,10 @@
       
       ! S_ij n_j dot product components at a wall node
       real snx, sny, snz, magsij
+
+      real dtdx(lx1,ly1,lz1,lelv)
+      real dtdy(lx1,ly1,lz1,lelv)
+      real dtdz(lx1,ly1,lz1,lelv)
       
       ! normal wall stress
       real snormal
@@ -403,6 +433,10 @@
       
       ! compute the rate of strain. 
       call comp_sij(sij,6,vx,vy,vz,ur,us,ut,vr,vs,vt,wr,ws,wt)
+      
+      if (ifheat) then
+        call gradm1(dtdx, dtdy, dtdz, t)
+      endif
 
       i_linear = 0
       ! compute the articifial viscosity at each wall face
@@ -442,7 +476,7 @@
                   snz = szx*normalx + szy*normaly + szz*normalz
 
                   ! we want only the shear stress
-                  ! first compute the nomrmal stress
+                  ! first compute the normal stress
                   snormal = (snx*normalx + sny*normaly +snz*normalz)
 
                   ! and now subtract it
@@ -473,3 +507,141 @@
 
       end subroutine
 
+!=======================================================================
+      subroutine wmles_integrate_tau()
+      implicit none
+      include 'SIZE'
+      include 'INPUT'
+      include 'SOLN'
+      include 'GEOM'
+      include 'WMLES'
+
+      ! face normal components
+      real normalx, normaly, normalz
+
+      ! the rate of strain tensor
+      real sij (lx1,ly1,lz1,6,lelv)
+
+      ! sij components at a node
+      real sxx, sxy, sxz, syx, syy, syz, szx, szy, szz
+      
+      ! S_ij n_j dot product components at a wall node
+      real snx, sny, snz, magsij
+
+      real dtdx(lx1,ly1,lz1,lelv)
+      real dtdy(lx1,ly1,lz1,lelv)
+      real dtdz(lx1,ly1,lz1,lelv)
+      
+      ! normal wall stress
+      real snormal
+
+      real total_tau(3), totalarea
+      
+      ! the magnitude of the wall shear stress predicted by the model
+      real magtau
+
+      ! stuff necessary to compute sij
+      integer lr
+      parameter (lr=lx1*ly1*lz1)
+
+      common /scruz/         ur(lr),us(lr),ut(lr)
+     $                     , vr(lr),vs(lr),vt(lr)
+     $                     , wr(lr),ws(lr),wt(lr)
+      real ur, us, ut, vr, vs, vt, wr, ws, wt
+
+      real glsum, ta, ttau(3)
+
+      ! counters for boundary traversing
+      integer i_linear, ielem, iface, inorm
+      integer frangex1, frangex2, frangey1, frangey2, frangez1, frangez2
+      integer ifacex, ifacey, ifacez
+      
+      ! compute the rate of strain. 
+      call comp_sij(sij,6,vx,vy,vz,ur,us,ut,vr,vs,vt,wr,ws,wt)
+      
+      if (ifheat) then
+        call gradm1(dtdx, dtdy, dtdz, t)   
+      endif
+
+      total_tau = 0
+      totalarea = 0
+
+      i_linear = 0
+      ! compute the articifial viscosity at each wall face
+      do ielem = 1, nelt
+        do iface=1, 6
+          if (boundaryID(iface, ielem) .eq. wmles_wallbid) then
+            call facind(frangex1, frangex2, frangey1,
+     $                  frangey2, frangez1, frangez2,
+     $                  lx1, ly1, lz1, iface)
+            inorm = 0
+            do ifacez=frangez1, frangez2
+              do ifacey=frangey1, frangey2
+                do ifacex=frangex1, frangex2
+                  i_linear = i_linear + 1
+                  inorm = inorm + 1
+
+                  totalarea = totalarea + wmles_areas(i_linear)
+                  
+                  ! grab the normal
+                  normalx = unx(inorm, 1, iface, ielem)
+                  normaly = uny(inorm, 1, iface, ielem)
+                  normalz = unz(inorm, 1, iface, ielem)
+
+                  ! grab the components of sij
+                  ! (some redundancy here due to symmetry, but ok)
+                  sxx = sij(ifacex, ifacey, ifacez, 1, ielem)
+                  sxy = sij(ifacex, ifacey, ifacez, 4, ielem)
+                  sxz = sij(ifacex, ifacey, ifacez, 6, ielem)
+                  syx = sij(ifacex, ifacey, ifacez, 4, ielem)
+                  syy = sij(ifacex, ifacey, ifacez, 2, ielem)
+                  syz = sij(ifacex, ifacey, ifacez, 5, ielem)
+                  szx = sij(ifacex, ifacey, ifacez, 6, ielem)
+                  szy = sij(ifacex, ifacey, ifacez, 5, ielem)
+                  szz = sij(ifacex, ifacey, ifacez, 3, ielem)
+                  
+                  ! compute the dot product S_ijn_j at the wall
+                  snx = sxx*normalx + sxy*normaly + sxz*normalz
+                  sny = syx*normalx + syy*normaly + syz*normalz
+                  snz = szx*normalx + szy*normaly + szz*normalz
+
+                  ! we want only the shear stress
+                  ! first compute the normal stress
+                  snormal = (snx*normalx + sny*normaly +snz*normalz)
+
+                  ! and now subtract it
+                  snx = snx - normalx*snormal
+                  sny = sny - normaly*snormal
+                  snz = snz - normalz*snormal
+                  
+
+                  magsij = sqrt(snx**2 + sny**2 + snz**2)
+
+
+                  total_tau(1) = total_tau(1) +
+     $              vdiff(ifacex, ifacey, ifacez, ielem, 1)*snx*
+     $              wmles_areas(i_linear)
+                  total_tau(2) = total_tau(2) +
+     $              vdiff(ifacex, ifacey, ifacez, ielem, 1)*sny*
+     $              wmles_areas(i_linear)
+                  total_tau(3) = total_tau(3) +
+     $              vdiff(ifacex, ifacey, ifacez, ielem, 1)*snz*
+     $              wmles_areas(i_linear)
+
+                end do
+              end do
+            end do
+            
+          endif
+        end do
+      end do
+
+      ta = glsum(totalarea, 1)
+      ttau(1) = glsum(total_tau(1), 1)/ta
+      ttau(2) = glsum(total_tau(2), 1)/ta
+      ttau(3) = glsum(total_tau(3), 1)/ta
+      if (nid.eq.1) then
+      write(*,*) "[WMLES] Wall tau", ttau(1), ttau(2),
+     $           ttau(3), sqrt(ttau(1)**2 + ttau(2)**2+ ttau(3)**2)
+      endif
+      end subroutine

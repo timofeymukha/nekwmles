@@ -48,6 +48,8 @@ c     wall shear stress
       real wmles_tau(NMAX_BOUNDARY_POINTS, 3)
 c     wall heat flux      
       real wmles_q(NMAX_BOUNDARY_POINTS)
+c     obukhov length
+      real wmles_lobukhov(NMAX_BOUNDARY_POINTS)
 
 c     sampled solution
       real wmles_solh(NMAX_BOUNDARY_POINTS, 5)
@@ -59,6 +61,11 @@ c     normals to the wall
       real wmles_normals(NMAX_BOUNDARY_POINTS, 3)
 c     areas of the wall
       real wmles_areas(NMAX_BOUNDARY_POINTS)
+
+c     averaged sampled quantities
+      real wmles_uh_average(3)
+      real wmles_th_average
+      real wmles_ts_average
 
 c     holds the ix iy iz ie for the linear index into the wmles arrays
       integer wmles_indices(NMAX_BOUNDARY_POINTS, 4)
@@ -102,4 +109,5 @@ c     Common blocks split by variable type
       common /wmlesr/ wmles_navrg, wmles_surface_temp,
      $ wmles_sampling_h, wmles_sampling_points,
      $ wmles_solh, wmles_normals, wmles_tau, wmles_q, wmles_areas,
-     $ wmles_theta0
+     $ wmles_theta0, wmles_lobukhov, wmles_uh_average, wmles_th_average,
+     $ wmles_ts_average

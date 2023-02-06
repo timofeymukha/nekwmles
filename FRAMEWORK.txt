@@ -7,8 +7,49 @@
 @brief Wall modelling functionality for Nek5000
 
 @details 
-This directory contains a number of ways for modelling the inner
-layer in LES. 
+This is a module for wall-modelled LES using NEK5000.
+The module is structured similarly to modules in the KTH FRAMEWORK for Nek5000 and is meant to be used in conjuction with it.
+The capabilities of the module are:
+- Algebraic wall models: Spalding's law, rough log-law, rough log-law with stabilization function for ABL simulations.
+Similar for the heat wall functions.
+- Sampling from arbitrary wall distance, set on a per-node basis in the user_set_sampling_height function, which should be provided in the user file.
+- Alternatively, sampling from an arbitrary off-wall node.
+- Exponential time averaging of sampled data.
+- Possibility to use the 'sh ' boundary condition or subgrid viscosity to enforce the wall-stress. The former is currently recommended.
+
+How to setup the case:
+
+1. User file
+- Add the wmles_register and wmles_init functions to the usual place in the KTH FRAMEWORK init and register functions.
+- Add a call to wmles_algebraic in userchk, this will compute the wall shear.
+- Optionally, add a call wmles_print_averaged_quantities, which will print some statistics.
+This mostly makes sence for channel-like cases where it makes since to present the statistics sampled across the whole boundary.
+- Optionally, add a call wmles_outpost at ISTEP 0, this will dump some fields holding the distribution of h, sampled velocity, etc.
+Good for debugging and making sure the case is setup correctly.
+- In userbc, assign trx, try, trz, and flux (if temperature is solved for). Look at the example usr file to see how it is done.
+- In userdat assign the faces which have the 'sh ' boundary condition a BoundaryID, corresponding to your choice of WALLBID in the .par file of your case.
+- Create a user_set_sampling_height subroutine, where you assign the sampling height, stored in the array wmles_sampling_h.
+- If you don't have a model for heat, then add an empty subroutine called wmles_set_heat_flux(h, ix, iy, iz, ie).
+
+
+2. Compilation
+- Copy WMLES_template as WMLES to you case directory.
+- Inside that file, set the NMAX_BOUNDARY_POINTS parameter. This is the maximum number of WMLES boundary nodes per MPI rank.
+- The wall model is selected by choosing what file to compile. For example, if you compile spalding.f then you will use Spalding's law.
+
+
+
+
+
+@mod_interface
+@interface_list Interface provided:
+-# @ref wmles_register
+-# @ref wmles_init
+
+@par
+@interface_reqr Interface required:
+-# user_set_sampling_height()
+
 
 */
 #List of existing submodules

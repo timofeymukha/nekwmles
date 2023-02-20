@@ -8,7 +8,8 @@
       include 'FRAMELP'
 
       ! linear index for the solution at the boundary
-      integer i_linear
+      ! and the gll indices to set the tau field
+      integer i_linear, ix, iy, iz, ie
 
       ! Timer function and current time place holder
       real dnekclock, ltim
@@ -22,11 +23,23 @@
       i_linear = 0
 
       do i_linear = 1, wmles_nbpoints
-         call wmles_set_momentum_flux(i_linear)
+      
+        ix  = wmles_indices(i_linear, 1)
+        iy  = wmles_indices(i_linear, 2)
+        iz  = wmles_indices(i_linear, 3)
+        ie  = wmles_indices(i_linear, 4)
+        
+        ! compute tau_w for this wall point
+        call wmles_set_momentum_flux(i_linear)
 
-         if (ifheat) then
-           call wmles_set_heat_flux(i_linear)
-         end if
+        ! save it to the 3d field as well (for statistics)
+        wmles_tau_field(ix, iy, iz, ie, 1) = wmles_tau(i_linear, 1)
+        wmles_tau_field(ix, iy, iz, ie, 2) = wmles_tau(i_linear, 2)
+        wmles_tau_field(ix, iy, iz, ie, 3) = wmles_tau(i_linear, 3)
+
+        if (ifheat) then
+          call wmles_set_heat_flux(i_linear)
+        end if
       enddo
 
       ! If we use viscosity to impose the shear stress, then
@@ -256,6 +269,7 @@
       call mntr_tmr_add(wmles_tmr_sampling_id, 1, ltim)
       end subroutine
 !=======================================================================
+!> @brief Sample the LES solution
       subroutine wmles_sample_distance_based()
       implicit none
 
@@ -339,7 +353,7 @@
         wmles_iffind = .false.
 
         ! project sampled velocity on the face plane
-        ! and the time-average
+        ! and then time-average
         do i=1, wmles_nbpoints
           vdotn = 0
           do j=1, 3

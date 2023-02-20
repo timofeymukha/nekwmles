@@ -36,6 +36,9 @@
       
       ! similarity law and coorection functions for it
       real similarity_law_u, similarity_law_q
+      
+      ! check wether the Newton iteration diverged
+      logical diverged
 
       ! dummy variables for retrieving parameters
       integer itmp
@@ -56,49 +59,47 @@
       iz = wmles_indices(i, 3)
       ie = wmles_indices(i, 4)
 
-
       h = wmles_sampling_h(i)
 
       ! Sample the values at the sampling point
       ! Velocity
-      magvh = wmles_solh(i, 1)**2 +
-     $        wmles_solh(i, 2)**2 +
-     $        wmles_solh(i, 3)**2
+c      magvh = wmles_solh(i, 1)**2 +
+c     $        wmles_solh(i, 2)**2 +
+c     $        wmles_solh(i, 3)**2
+
+      magvh = wmles_uh_average(1)**2 +
+     $        wmles_uh_average(2)**2 +
+     $        wmles_uh_average(3)**2
+
       magvh = sqrt(magvh)
 
 c      write(*,*) i
-      if (i .eq. 1 .and. nid .eq. 64) then
-        write(*,*) "Sampled u", magvh, nid
-      endif
+c      if (i .eq. 1 .and. nid .eq. 64) then
+c        write(*,*) "Sampled u", magvh, nid
+c      endif
 
       ! Temperature
-      th = wmles_solh(i, 4)
+c      th = wmles_solh(i, 4)
+      th = wmles_th_average
       
       ! Surface temperature
       if (wmles_ifviscosity) then
         ts = wmles_solh(i, 5)
+        ts = wmles_ts_average
       else
         ts = wmles_surface_temp
       endif
 
-      ! Get uncorrected utau for a first guess otherwise from last
-      ! timestep
-      if (ISTEP .gt. 3) then
-        utau = wmles_tau(i, 1)**2 +
-     $         wmles_tau(i, 2)**2 +
-     $         wmles_tau(i, 3)**2
-        utau = sqrt(sqrt(utau))
-        q = wmles_q(i)
-      else
-        utau = magvh*kappa/log(h/z0)
-        q = kappa*utau*(ts - th)/log(h/z1)
-      end if
+      ! Get uncorrected utau for a first guess
+      utau = magvh*kappa/log(h/z0)
+      q = kappa*utau*(ts - th)/log(h/z1)
       
 c      write(*,*) utau, q
 
-
       a = 5.0
       b = 5.0
+      
+      diverged = .false.
       
       if (ISTEP .gt. 3) then
 
@@ -106,21 +107,23 @@ c      write(*,*) utau, q
 
         ! Obukhov l based on the previous-step utau and q
         l_obukhov = -(wmles_theta0*utau**3)/(kappa*g*q)
-c        write(*,*) "l", l_obukhov
         
-        ! In case the iteration diverges we will just use this
-        l_backup = l_obukhov
+        wmles_lobukhov(i) = l_obukhov
+        
+        if (l_obukhov .ge. 20000) then
+            diverged = .true.
+        endif
+
+c        write(*,*) "l", l_obukhov
         
         l_old = 0
         count = 0
 c       !write(*,*) "ERR",  abs(l_old - l_obukhov)/l_obukhov 
         do while ((abs(l_old - l_obukhov)/abs(l_obukhov) .gt. 1e-3)
-     $           .and. (count .lt. 20))
+     $           .and. (count .lt. 20) .and. (.not. diverged))
 
           l_old = l_obukhov
           count = count + 1
-
-
 
           ! for the central diff for evaluating dfdl
 c          l_upper = l_obukhov + 1e-3*l_obukhov
@@ -147,23 +150,33 @@ c          write(*,*) count, l_obukhov
           ! This is an adhoc upper bound for L, at which point we
           ! consider N-R to be diverged
           if (abs(l_obukhov) > 20000 ) then
-            count = 20
+            diverged = .true.
           end if
         enddo
+        
+        if (count .eq. 20) then
+            diverged = .true.
+        endif
         
         !write(*,*) l_backup, l_obukhov, count, rib
         
         ! if we did not converge
-        if (count .eq. 20) then
-          write(*,*) "Unconverged :("
-          l_obukhov = l_backup
-        endif
-        
-        ! compute u* with the new obukhov length
-        utau = kappa*magvh/similarity_law_u(l_obukhov, h, z0) 
+        if (diverged) then
+c          write(*,*) "Unconverged :("
+        else
+              
+          if (l_obukhov < 5) then
+c            write(*,*) l_obukhov, magvh, th, count, wmles_uh_average
+          endif
+          ! udate stored values
+          wmles_lobukhov(i) = l_obukhov
 
-        ! compute q with the new obukhov length
-        q = kappa*utau*(ts - th)/similarity_law_q(l_obukhov, h, z0) 
+          ! compute u* with the new obukhov length
+          utau = kappa*magvh/similarity_law_u(l_obukhov, h, z0) 
+
+          ! compute q with the new obukhov length
+          q = kappa*utau*(ts - th)/similarity_law_q(l_obukhov, h, z0) 
+        endif
       endif
 
       ! Assign tau proportional to the velocity magnitudes at

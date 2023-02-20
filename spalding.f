@@ -11,9 +11,6 @@
       ! linear index for the sampled solution values
       integer i
 
-      ! the indices of the gll point
-      integer ix, iy, iz, ie
-
       ! solver for the law of the wall
       real newton
 
@@ -35,11 +32,6 @@
      $        wmles_solh(i, 3)**2
       magvh = sqrt(magvh)
       
-      ix = wmles_indices(i, 1)
-      iy = wmles_indices(i, 2)
-      iz = wmles_indices(i, 3)
-      ie = wmles_indices(i, 4)
-     
       ! take the stress mag at the previous step as a guess
       ! inital value at simulation start is the GUESS param
       guess = 

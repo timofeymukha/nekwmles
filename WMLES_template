@@ -46,6 +46,8 @@ c     sampling
       
 c     wall shear stress       
       real wmles_tau(NMAX_BOUNDARY_POINTS, 3)
+c     wall shear stress as a full field, for saving with the statistics
+      real wmles_tau_field(lx1, ly1, lz1, lelv, 3)
 c     wall heat flux      
       real wmles_q(NMAX_BOUNDARY_POINTS)
 c     obukhov length
@@ -110,4 +112,4 @@ c     Common blocks split by variable type
      $ wmles_sampling_h, wmles_sampling_points,
      $ wmles_solh, wmles_normals, wmles_tau, wmles_q, wmles_areas,
      $ wmles_theta0, wmles_lobukhov, wmles_uh_average, wmles_th_average,
-     $ wmles_ts_average
+     $ wmles_ts_average, wmles_tau_field

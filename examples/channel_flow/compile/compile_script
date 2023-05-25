@@ -1,0 +1,62 @@
+#!/bin/bash
+
+
+function error_quit {
+    echo -e "$@"
+    echo
+    echo -e 'Usage:'
+    echo -e './compile_script --clean'
+    echo -e '   To clean build direcrtory. Makenek will ask for cleaning 3rd-party libraries.'
+    echo
+    echo -e './compile_script --all'
+    echo -e '   To compile the code.'
+    exit 1
+}
+
+export TOOLBOX_SRC=$KTH_TOOLBOX_DIR
+source ${TOOLBOX_SRC}/toolbox_path.sh
+
+#parameters
+export CASE="channel_flow"
+export NEK_SOURCE_ROOT=$NEK_SOURCE_ROOT
+export FC="ftn"${TOOLBOX_INC}
+export CC="cc"
+export CXX="CC"
+export FFLAGS="-I$NEK_WMLES"
+export CFLAGS=""
+export PPLIST=""
+export USR="frame.o mntrlog_block.o mntrlog.o mntrtmr_block.o mntrtmr.o rprm_block.o rprm.o io_tools_block.o io_tools.o"
+USR+=" map2D.o stat.o stat_IO.o math_tools.o chkpoint.o"
+USR+=" vreman.o utils.o"
+USR+=" newton.o spalding.o algebraicwm.o wmles.o"
+export USR_LFLAGS=""
+
+
+# arguments
+args=("$@")
+argsnr=$#
+
+# check arguments
+# parameters number check
+if [ $[argsnr] -ne 1 ]; then
+    error_quit 'Wrong arguments number!'
+fi
+
+for il in "$@"
+do
+case $il in
+        --clean)
+                ${NEK_SOURCE_ROOT}/bin/makenek clean
+                shift
+                ;;
+        --all)
+                ${NEK_SOURCE_ROOT}/bin/makenek ${CASE}
+                shift
+                ;;
+        *) 
+                error_quit 'Wrong argument.'
+                ;;
+esac
+done
+
+cp nek5000 ..

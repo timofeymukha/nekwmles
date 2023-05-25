@@ -1,0 +1,14 @@
+c
+c    Storage for sub-grid scale stress variables
+c
+      real ediff(lx1,ly1,lz1,lelv),
+     $       dg2(lx1,ly1,lz1,lelv),
+     $       dg2_max(lelv)
+
+      common /cdsmag/ ediff, dg2, dg2_max
+
+      real sij(lx1*ly1*lz1,ldim,ldim),
+     $     snrm(lx1*ly1*lz1,lelv)
+      common /constsmg/ sij, snrm
+
+c vim: set ft=fortran

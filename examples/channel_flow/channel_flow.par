@@ -1,0 +1,53 @@
+#
+# nek parameter file
+#
+[GENERAL] 
+
+startFrom = 0
+stopAt = endTime
+endTime = 1000
+
+timeStepper = bdf3
+extrapolation = standard
+variableDt = yes
+targetCFL = 0.5
+dt = 5e-3
+
+writeControl = runTime
+writeInterval = 200 
+
+filtering = hpfrt
+filterModes = 1
+filterWeight = 10.0
+
+[PROBLEMTYPE]
+variableProperties = true
+equation = incompNS
+stressFormulation = yes
+
+[PRESSURE]
+preconditioner = semg_xxt
+residualTol = 1e-7 
+residualProj = yes
+
+[VELOCITY]
+residualTol = 1e-8 
+density = 1
+viscosity = -200400
+
+[_MONITOR]
+LogLevel = 2 
+IfTimDscr = yes
+  
+[_STAT]             # Runtime paramerer section for statistics module
+AVSTEP               = 10
+IOSTEP               = 20000 
+
+[_WMLES]                # Runtime parameter section for the WMLES module
+LOGKAPPA             = 0.387E+00         # Von Karman coefficient
+LOGB                 = 4.2                    # The intercept of the log law
+GUESS                = 0.20000000E-02         # An initial guess for tau_w
+WALLBID              = 1                      # Boundary ID of the wall faces
+IFVISCOSITY          = no                     # Whether tau_w is imposed via wall viscosity
+IFHISINDEX           = no                     # Whether h values are indices and not distances
+NAVRG                = 10                     # Number of timesteps to average the wm input over

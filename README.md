@@ -10,4 +10,4 @@ and may be integrated there in the future.
 For more details see the FRAMEWORK.txt file.
 
 ## Contributors
-- Timofey Mukha, 2021
+- Timofey Mukha, 2021-2023

@@ -395,9 +395,9 @@ c
                   zgll = zm1(ifacex, ifacey, ifacez, ielem)
 
                   ! inward face normal
-                  normalx =  unx(inorm, 1, iface, ielem)
+                  normalx = -unx(inorm, 1, iface, ielem)
                   normaly = -uny(inorm, 1, iface, ielem)
-                  normalz =  unz(inorm, 1, iface, ielem)
+                  normalz = -unz(inorm, 1, iface, ielem)
 
                   ! store the normals
                   wmles_normals(n_sampling, 1) = normalx
